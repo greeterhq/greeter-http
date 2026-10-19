@@ -116,8 +116,10 @@ Style/StringConcatenation:
   Exclude:
     - 'features/**/*'
 
-# Benchmark harnesses (perf/) are printf-heavy (many `%.4f` latency formats);
-# annotated tokens would only bloat them. They are standalone scripts.
+# Benchmark harnesses (perf/) and operational bin/ scripts (smoke, etc.) are
+# printf-heavy (many `%.1f` latency formats); annotated tokens would only bloat
+# them. They are standalone scripts, not library code.
 Style/FormatStringToken:
   Exclude:
     - 'perf/**/*'
+    - 'bin/**/*'

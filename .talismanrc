@@ -63,28 +63,34 @@ fileignoreconfig:
   checksum: c47854a93d461be8ceeb4f99d185ec7523b61623326e4d0742eed1d65d4100a5
 - filename: bin/iam-check
   checksum: 70c512b3f9e7a95e95c20ab0b0bf5c3d1b3eb61809e290fcbe1c809ad1a2f941
+- filename: bin/smoke
+  checksum: f266eaf30861623b93d51bd5b90bdbbb07f79fafb12e60535d13abaeb508a43e
+- filename: docs/observability.md
+  checksum: 1035c24ac34d27fee9656a510b5236811b42cc1e0118b6a170c06eede553a3f9  
 - filename: features/step_definitions/smoke_steps.rb
   checksum: cd9007cc8cf13fd8c6c2922d93ca061c6cf18287bf41f715008a50697cbf4e77
 - filename: features/support/env.rb
   checksum: 8a53a245f11f6278c458910d947564839734d7236eb851e9e8299b76b0c92abb
 - filename: infra/template.yaml
-  checksum: 8ab40b40ea48c79d8b25f9d66a2cdcdac34b52a0907080b292f81a49cb870477
+  checksum: c3a4be4d91566e46a2627aced8798d04c3a82abe7332f73a4a8d22761bbd06d2
+- filename: lib/greeter_http/adapters/disabled_greeting_counter.rb
+  checksum: d670ba36887c3e5062a0d09a7a16725051bd579190a980a7fdf2fc79c82ee70a
 - filename: lib/greeter_http/adapters/in_memory_greeting_counter.rb
-  checksum: 42805d5b81672d04692c2d8b31b93ae0eb4f8fe77d666095d826f2b5083a4290
+  checksum: 2cc1388fc8dcb53d2829da15779c9f4379c1fef0f16462aa1517fd2f9740be86
 - filename: lib/greeter_http/adapters/rack_app.rb
-  checksum: ff3c68862c26a8d3c3c8cbaed4e413a364faa9bbe976fc25ae7d59f184ddf6f6  
+  checksum: 6b38d9bebf16ffc0ea22e5b17933e4811749d261039b02e0166e303e9dfe5b72  
 - filename: lib/greeter_http/adapters/lambda_handler.rb
   checksum: efa78eca5bbac2f24c4f0741105015e71f1c1f2a00349b6566a400161c880059
 - filename: lib/greeter_http/application/greet_and_count.rb
-  checksum: 5c418009488d371394deb131951a6a197bdf389c394ff8f14e7f9727744267cf
+  checksum: ce59f4ce5ab061f5493bad0e1b1524bd602594ec5aeb1ea93dc317e181823df3
 - filename: lib/greeter_http/application/greeted_guest.rb
   checksum: 8fa79ba6e6980fa4b4c54c9f1610b1b21bbadfafc99a6ea3e5ea55f4b5629011
 - filename: lib/greeter_http/ports/greeting_counter.rb
-  checksum: f797da2da5127c2bae87f1ac31133eea32b99c9b8c46ade19ed2a3db5746c052
+  checksum: 339f07c77cdacc9accd7afe1ff6abb913ee026eac98c13987759b4755f092500
 - filename: features/step_definitions/greeting_counter_steps.rb
   checksum: b9119581f91b32b76e2e77b89f82c747baf828acc785ba61e6cdd98982dc9717
 - filename: lib/greeter_http/adapters/dynamodb_greeting_counter.rb
-  checksum: 0e31cbc11deef0ec9ec20af336ee0fed0869a8478349a16ca2bf976111ec817b  
+  checksum: b6cab31a5f53dcb0b04a36526d7bdcf8ac769ae4b0359f6d1ce5749ef5d83ea2  
 - filename: openspec/changes/add-greeting-counter-http/specs/greeting-counter/spec.md
   checksum: 6dbc2a4e86568869ca380f4797b8cb708d262cc0c965c31e0cf98a228e2e66ae
 - filename: openspec/changes/add-greeting-counter-http/tasks.md
@@ -96,9 +102,13 @@ fileignoreconfig:
 - filename: perf/load.rb
   checksum: ad4eab6dbb516c7a821a7d01969afe4ec213d303abf4dad0eefaf3bdf15248e2
 - filename: perf/profile_paths.rb
-  checksum: 9893c741495f264f9121e5995b88b7a02791861f8d01513ae847e28c6adc9cf4  
+  checksum: 9893c741495f264f9121e5995b88b7a02791861f8d01513ae847e28c6adc9cf4 
+- filename: spec/adapters/disabled_greeting_counter_spec.rb
+  checksum: 30cb0b537200b54f688b2f8de17fa4804d31537804428ef629667e8c93654226 
 - filename: spec/adapters/in_memory_greeting_counter_spec.rb
   checksum: 94a5dbccc4b4ddf52571b9fcdb5e91a6c566d0f389c44db22ebb1d28b1f56b7a
+- filename: spec/adapters/rack_app_logging_spec.rb
+  checksum: bf522eed124c876bc134b9d1e3e61bb4e28beda5d6a78fa81ddc436db41911f4
 - filename: spec/app_spec.rb
   checksum: c4dd0264812c3f0004715d0442f1623bce5053c617c5e731b1ba2eadbed6bd9a  
 - filename: spec/application/greet_and_count_spec.rb
@@ -116,7 +126,7 @@ fileignoreconfig:
 - filename: spec/architecture_spec.rb
   checksum: 48c61033205fb46d14637008c94ad89edbea65fb3e9cb95bd1bf35b2706b9b3d
 - filename: spec/contracts/greeting_counter_contract.rb
-  checksum: 5c1620ec9f38de3fb46fccfa89ba04eb7b21f77a496572b52bf7d686440fd684
+  checksum: fcd6025463343f4c3cb5530d5d2bcf5bbcdda52ea3bea38e14a4e34a553f1feb
 - filename: spec/integration/dynamo_greeting_counter_spec.rb
   checksum: c0f254d295ad8200a06afd6b1502c210fb4e3270e8a06ae7f22c30b5f98fe943
 - filename: vendor/greeter-core-api.md

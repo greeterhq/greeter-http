@@ -6,6 +6,7 @@ require 'aws-sdk-dynamodb'
 require 'greeter_http/application/greet_and_count'
 require 'greeter_http/adapters/in_memory_greeting_counter'
 require 'greeter_http/adapters/dynamodb_greeting_counter'
+require 'greeter_http/adapters/disabled_greeting_counter'
 require 'greeter_http/adapters/system_clock'
 require 'greeter_http/adapters/json_presenter'
 require 'greeter_http/adapters/rack_app'
@@ -63,6 +64,12 @@ module GreeterHttp
     #
     # @return [Ports::GreetingCounter]
     def counter_from_env(default:, clock: Adapters::SystemClock.new)
+      # Operational kill switch: GREETER_COUNTER_ENABLED=false disables the
+      # datastore entirely (no DynamoDB access) without a redeploy. The service
+      # still greets; the count is reported as not tracked. Takes precedence
+      # over the backend selection below.
+      return Adapters::DisabledGreetingCounter.new unless counter_enabled?
+
       backend = ENV.fetch('GREETER_BACKEND', default)
       case backend
       when 'memory'
@@ -73,6 +80,14 @@ module GreeterHttp
         raise ArgumentError,
               "unknown GREETER_BACKEND=#{backend.inspect} (expected one of: memory, dynamodb)"
       end
+    end
+
+    # The counter is ON unless GREETER_COUNTER_ENABLED is explicitly a falsey
+    # string ("false"/"0"/"no"/"off", case-insensitive). Default-on so an unset
+    # variable keeps the normal behaviour.
+    def counter_enabled?
+      raw = ENV.fetch('GREETER_COUNTER_ENABLED', 'true').to_s.strip.downcase
+      !%w[false 0 no off].include?(raw)
     end
 
     def dynamodb_counter(clock)
@@ -91,6 +106,8 @@ module GreeterHttp
     # Reports (not set) rather than raising if GREETER_TABLE_NAME is missing, so
     # a diagnostic banner never breaks startup.
     def startup_backend_description(default:)
+      return 'backend=disabled (GREETER_COUNTER_ENABLED=false; greet-but-don\'t-count)' unless counter_enabled?
+
       backend = ENV.fetch('GREETER_BACKEND', default)
       return "backend=#{backend}" unless backend == 'dynamodb'
 

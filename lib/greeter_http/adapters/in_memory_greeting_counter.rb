@@ -23,9 +23,11 @@ module GreeterHttp
         @mutex = Mutex.new
       end
 
-      def increment(guest:, idempotency_key:, fingerprint:)
+      def increment(guest:, idempotency_key:, fingerprint:, synthetic: false)
         validate_arguments!(idempotency_key: idempotency_key, fingerprint: fingerprint)
-        guest_key = guest.to_s
+        # Synthetic (monitoring) traffic counts under an isolated key space so
+        # it never inflates real per-guest counts.
+        guest_key = synthetic ? "synthetic##{guest}" : guest.to_s
 
         @mutex.synchronize do
           purge_expired

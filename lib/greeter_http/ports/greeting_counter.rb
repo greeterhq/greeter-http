@@ -25,8 +25,11 @@ module GreeterHttp
       # @param guest [#to_s] the normalized guest identity (GuestName)
       # @param idempotency_key [String]
       # @param fingerprint [String] hash of the normalized request
+      # @param synthetic [Boolean] when true, record under an isolated
+      #   ("synthetic#") key space so monitoring traffic never mixes with real
+      #   per-guest counts.
       # @return [Result]
-      def increment(guest:, idempotency_key:, fingerprint:)
+      def increment(guest:, idempotency_key:, fingerprint:, synthetic: false)
         raise NotImplementedError, "#{self.class}#increment is not implemented"
       end
 

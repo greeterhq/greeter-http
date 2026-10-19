@@ -1,0 +1,117 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# smoke — post-deploy health check against a live greeter-http endpoint.
+#
+#   GREETER_BASE_URL=https://xxxx.execute-api.eu-west-2.amazonaws.com bin/smoke
+#
+# Checks (exit non-zero if any fails):
+#   1. A valid greeting for a fresh guest succeeds (2xx) and its count
+#      INCREMENTS when the same guest is greeted again with a new key.
+#   2. A malformed request is rejected with HTTP 400.
+#   3. The p95 latency over 20 greeting calls is under 300 ms.
+#
+# Notes on status codes (matching the service's real contract):
+#   - A new greeting returns 201 and a replay 200, so "success" accepts any 2xx
+#     rather than asserting exactly 200.
+#   - Only a malformed JSON body yields 400 (an empty/over-long NAME is 422), so
+#     the 400 check sends deliberately broken JSON.
+#
+# Pure stdlib (net/http) — no gems, so it runs anywhere Ruby does.
+
+require 'net/http'
+require 'uri'
+require 'json'
+require 'securerandom'
+
+BASE_URL = ENV['GREETER_BASE_URL'].to_s
+P95_BUDGET_MS = Float(ENV.fetch('GREETER_SMOKE_P95_MS', 300))
+LATENCY_SAMPLES = Integer(ENV.fetch('GREETER_SMOKE_SAMPLES', 20))
+
+abort 'smoke: GREETER_BASE_URL is not set' if BASE_URL.empty?
+
+ENDPOINT = URI.join("#{BASE_URL.chomp('/')}/", 'greetings')
+
+failures = []
+
+def monotonic
+  Process.clock_gettime(Process::CLOCK_MONOTONIC)
+end
+
+# POST a greeting. `raw_body` overrides the JSON body for the malformed case.
+# Returns [Net::HTTPResponse, elapsed_ms].
+def post(name: nil, key: SecureRandom.uuid, raw_body: nil)
+  http = Net::HTTP.new(ENDPOINT.host, ENDPOINT.port)
+  http.use_ssl = (ENDPOINT.scheme == 'https')
+  req = Net::HTTP::Post.new(ENDPOINT)
+  req['Content-Type'] = 'application/json'
+  req['Idempotency-Key'] = key
+  req.body = raw_body || JSON.generate('name' => name)
+  t0 = monotonic
+  resp = http.request(req)
+  [resp, (monotonic - t0) * 1000.0]
+end
+
+def pct(sorted_ms, fraction)
+  return 0.0 if sorted_ms.empty?
+
+  idx = (sorted_ms.length * fraction).ceil - 1
+  sorted_ms[idx.clamp(0, sorted_ms.length - 1)]
+end
+
+# Safely pull the numeric "count" from a response body; nil if absent/unparsable.
+def parsed_count(resp)
+  return nil if resp.body.nil? || resp.body.empty?
+
+  JSON.parse(resp.body)['count']
+rescue JSON::ParserError
+  nil
+end
+
+# --- Check 1: valid greeting succeeds and the count increments --------------
+puts '== check 1: valid greeting increments =='
+guest = "smoke guest #{SecureRandom.hex(4)}" # fresh guest -> count starts at 1
+resp1, = post(name: guest)
+resp2, = post(name: guest) # same guest, new key -> count should go up
+
+first  = parsed_count(resp1)
+second = parsed_count(resp2)
+
+if !resp1.code.start_with?('2') || !resp2.code.start_with?('2')
+  failures << "valid greeting did not return 2xx (got #{resp1.code}, #{resp2.code})"
+elsif first.nil? || second.nil?
+  failures << "response had no numeric count (got #{first.inspect}, #{second.inspect})"
+elsif second <= first
+  failures << "count did not increment (#{first} -> #{second})"
+else
+  puts "  ok: #{resp1.code}/#{resp2.code}, count #{first} -> #{second}"
+end
+
+# --- Check 2: malformed request -> 400 --------------------------------------
+puts '== check 2: malformed request rejected with 400 =='
+resp, = post(raw_body: '{"name": ') # broken JSON
+if resp.code == '400'
+  puts "  ok: #{resp.code}"
+else
+  failures << "malformed request did not return 400 (got #{resp.code})"
+end
+
+# --- Check 3: p95 of 20 calls < budget --------------------------------------
+puts "== check 3: p95 of #{LATENCY_SAMPLES} calls < #{P95_BUDGET_MS} ms =="
+latencies = Array.new(LATENCY_SAMPLES) do
+  _, ms = post(name: "smoke latency #{SecureRandom.hex(4)}")
+  ms
+end
+p95 = pct(latencies.sort, 0.95)
+puts format('  p50=%.1f ms  p95=%.1f ms  max=%.1f ms', pct(latencies.sort, 0.5), p95, latencies.max)
+failures << format('p95 %.1f ms exceeds %.1f ms budget', p95, P95_BUDGET_MS) if p95 >= P95_BUDGET_MS
+
+# --- Result -----------------------------------------------------------------
+puts
+if failures.empty?
+  puts 'smoke: PASS'
+  exit 0
+end
+puts 'smoke: FAIL'
+failures.each { |f| puts "  - #{f}" }
+exit 1

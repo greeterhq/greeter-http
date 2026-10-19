@@ -14,11 +14,12 @@ RSpec.shared_examples 'a greeting counter' do
   # fresh idempotency key per call so these count-focused examples exercise
   # real increments rather than replays. The fingerprint defaults to a
   # per-guest value; pass it explicitly (including nil) to override.
-  def increment(guest, key: SecureRandom.uuid, fingerprint: "fp-#{guest}")
+  def increment(guest, key: SecureRandom.uuid, fingerprint: "fp-#{guest}", synthetic: false)
     counter.increment(
       guest: guest,
       idempotency_key: key,
-      fingerprint: fingerprint
+      fingerprint: fingerprint,
+      synthetic: synthetic
     )
   end
 
@@ -46,6 +47,18 @@ RSpec.shared_examples 'a greeting counter' do
 
     expect(count_of(increment(alice))).to eq(4)
     expect(count_of(increment(bob))).to eq(2)
+  end
+
+  it 'isolates synthetic traffic from the same guest\'s real count' do
+    # Real and synthetic increments for the SAME guest name must not share a
+    # counter: synthetic monitoring traffic never inflates the real count.
+    2.times { increment(guest, synthetic: false) }
+    2.times { increment(guest, synthetic: true) }
+
+    # The next real increment is 3 (not 5), and the next synthetic is 3 too —
+    # two independent sequences under the one guest name.
+    expect(count_of(increment(guest, synthetic: false))).to eq(3)
+    expect(count_of(increment(guest, synthetic: true))).to eq(3)
   end
 
   it 'totals exactly 10 when 10 threads increment the same guest concurrently' do

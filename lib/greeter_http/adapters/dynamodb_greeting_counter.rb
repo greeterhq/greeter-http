@@ -33,9 +33,11 @@ module GreeterHttp
         @clock = clock
       end
 
-      def increment(guest:, idempotency_key:, fingerprint:)
+      def increment(guest:, idempotency_key:, fingerprint:, synthetic: false)
         validate_arguments!(idempotency_key: idempotency_key, fingerprint: fingerprint)
-        pk = "GUEST##{guest}"
+        # Synthetic (monitoring) traffic is isolated under a "synthetic#" PK
+        # prefix so canary greetings never inflate real per-guest counts.
+        pk = "#{'synthetic#' if synthetic}GUEST##{guest}"
         attempt = 0
 
         loop do

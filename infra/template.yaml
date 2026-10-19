@@ -25,6 +25,16 @@ Parameters:
       Optional DynamoDB endpoint override for LOCAL development only (e.g.
       DynamoDB Local via `sam local`). Leave empty in real AWS so the SDK
       resolves the regional endpoint and task credentials.
+  AlarmEmail:
+    Type: String
+    Default: ''
+    Description: >
+      Email address subscribed to the paging SNS topic. Leave empty to create
+      the topic with no subscription (wire PagerDuty/Slack/etc. out of band).
+  CanaryScheduleExpression:
+    Type: String
+    Default: rate(5 minutes)
+    Description: How often the Synthetics canary runs the health checks.
 
 Globals:
   Function:
@@ -32,6 +42,9 @@ Globals:
     Timeout: 10
     MemorySize: 256
     Tracing: Active          # X-Ray active tracing
+
+Conditions:
+  HasAlarmEmail: !Not [!Equals [!Ref AlarmEmail, '']]
 
 Resources:
 
@@ -71,6 +84,14 @@ Resources:
             Condition:
               ArnLike:
                 'kms:EncryptionContext:aws:logs:arn': !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:*
+          - Sid: AllowCloudWatchAlarmsToPublishToEncryptedTopic
+            Effect: Allow
+            Principal:
+              Service: cloudwatch.amazonaws.com
+            Action:
+              - kms:Decrypt
+              - kms:GenerateDataKey*
+            Resource: '*'
 
   # --- DynamoDB table: counter items + TTL'd dedupe items -------------------
   GreetingsTable:
@@ -206,7 +227,24 @@ Resources:
           "protocol":"$context.protocol","responseLength":"$context.responseLength",
           "integrationLatency":"$context.integrationLatency"}
 
-  # --- CloudWatch alarms ----------------------------------------------------
+  # --- Paging SNS topic -----------------------------------------------------
+  # Single destination for all three paging alarms (5xx, p95 latency, canary).
+  # An optional email subscription is created when AlarmEmail is provided.
+  PagingTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      DisplayName: greeter-http paging alarms
+      KmsMasterKeyId: !Ref EncryptionKey   # CKV_AWS_26: encrypt the topic
+
+  PagingEmailSubscription:
+    Type: AWS::SNS::Subscription
+    Condition: HasAlarmEmail
+    Properties:
+      TopicArn: !Ref PagingTopic
+      Protocol: email
+      Endpoint: !Ref AlarmEmail
+
+  # --- CloudWatch alarms (all three page via PagingTopic) -------------------
   Http5xxAlarm:
     Type: AWS::CloudWatch::Alarm
     Properties:
@@ -222,6 +260,10 @@ Resources:
       Threshold: 0.05                 # 5% of requests
       ComparisonOperator: GreaterThanThreshold
       TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref PagingTopic
+      OKActions:
+        - !Ref PagingTopic
 
   HttpLatencyP95Alarm:
     Type: AWS::CloudWatch::Alarm
@@ -238,6 +280,188 @@ Resources:
       Threshold: !Ref Latencyp95ThresholdMs
       ComparisonOperator: GreaterThanThreshold
       TreatMissingData: notBreaching
+      AlarmActions:
+        - !Ref PagingTopic
+      OKActions:
+        - !Ref PagingTopic
+
+  # --- Synthetics canary: runs the same checks as bin/smoke every 5 min -----
+  CanaryArtifactsBucket:
+    Type: AWS::S3::Bucket
+    Metadata:
+      checkov:
+        skip:
+          - id: CKV_AWS_18
+            comment: >-
+              Access logging on a throwaway canary-artifacts bucket would need a
+              second logging bucket; not worth it for monitoring artifacts that
+              already expire after 30 days.
+          - id: CKV_AWS_21
+            comment: >-
+              Versioning disabled by design — canary artifacts are ephemeral
+              (30-day lifecycle); versioning only adds cost and clutter.
+    Properties:
+      BucketEncryption:
+        ServerSideEncryptionConfiguration:
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: aws:kms
+              KMSMasterKeyID: !GetAtt EncryptionKey.Arn
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+      LifecycleConfiguration:
+        Rules:
+          - Id: expire-canary-artifacts
+            Status: Enabled
+            ExpirationInDays: 30
+
+  CanaryRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: canary-permissions
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:PutObject
+                  - s3:GetObject
+                  - s3:GetBucketLocation
+                Resource:
+                  - !GetAtt CanaryArtifactsBucket.Arn
+                  - !Sub ${CanaryArtifactsBucket.Arn}/*
+              - Effect: Allow
+                Action:
+                  - s3:ListAllMyBuckets
+                  - cloudwatch:PutMetricData
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: !Sub arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/cwsyn-*
+              - Effect: Allow
+                Action:
+                  - kms:GenerateDataKey
+                  - kms:Decrypt
+                Resource: !GetAtt EncryptionKey.Arn
+
+  HealthCanary:
+    Type: AWS::Synthetics::Canary
+    Properties:
+      Name: greeter-http-health
+      ArtifactS3Location: !Sub s3://${CanaryArtifactsBucket}/canary
+      ExecutionRoleArn: !GetAtt CanaryRole.Arn
+      RuntimeVersion: syn-nodejs-puppeteer-9.0
+      StartCanaryAfterCreation: true
+      Schedule:
+        Expression: !Ref CanaryScheduleExpression
+      RunConfig:
+        TimeoutInSeconds: 60
+        EnvironmentVariables:
+          GREETER_BASE_URL: !Sub https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com
+      Code:
+        Handler: index.handler
+        # Inline Node.js canary. Mirrors bin/smoke's checks against the live
+        # endpoint: valid greeting -> 2xx with an incrementing count; malformed
+        # body -> 400; p95 of 20 calls < 300 ms. Sends x-greeter-synthetic:true
+        # so this monitoring traffic is tagged in logs and isolated in the
+        # counter (synthetic# key prefix). A failed assertion throws, which
+        # fails the canary run and drives the SuccessPercent alarm below.
+        Script: |
+          const https = require('https');
+          const { URL } = require('url');
+
+          const BASE = process.env.GREETER_BASE_URL;
+          const P95_BUDGET_MS = 300;
+
+          function post(bodyObj, rawBody) {
+            const u = new URL(BASE.replace(/\/$/, '') + '/greetings');
+            const body = rawBody !== undefined ? rawBody : JSON.stringify(bodyObj);
+            const opts = {
+              method: 'POST',
+              hostname: u.hostname,
+              path: u.pathname,
+              headers: {
+                'Content-Type': 'application/json',
+                'Idempotency-Key': `canary-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+                'x-greeter-synthetic': 'true',
+              },
+            };
+            const start = Date.now();
+            return new Promise((resolve, reject) => {
+              const req = https.request(opts, (res) => {
+                let data = '';
+                res.on('data', (c) => (data += c));
+                res.on('end', () => resolve({ status: res.statusCode, body: data, ms: Date.now() - start }));
+              });
+              req.on('error', reject);
+              req.write(body);
+              req.end();
+            });
+          }
+
+          const handler = async function () {
+            // Check 1: valid greeting increments.
+            const guest = `canary guest ${Date.now()}`;
+            const r1 = await post({ name: guest });
+            const r2 = await post({ name: guest });
+            if (r1.status < 200 || r1.status >= 300 || r2.status < 200 || r2.status >= 300) {
+              throw new Error(`valid greeting not 2xx: ${r1.status}/${r2.status}`);
+            }
+            const c1 = JSON.parse(r1.body).count;
+            const c2 = JSON.parse(r2.body).count;
+            if (!(typeof c1 === 'number' && typeof c2 === 'number' && c2 > c1)) {
+              throw new Error(`count did not increment: ${c1} -> ${c2}`);
+            }
+
+            // Check 2: malformed body -> 400.
+            const bad = await post(null, '{"name": ');
+            if (bad.status !== 400) throw new Error(`malformed not 400: ${bad.status}`);
+
+            // Check 3: p95 of 20 calls < budget.
+            const lat = [];
+            for (let i = 0; i < 20; i++) {
+              const r = await post({ name: `canary latency ${Date.now()}-${i}` });
+              lat.push(r.ms);
+            }
+            lat.sort((a, b) => a - b);
+            const p95 = lat[Math.ceil(lat.length * 0.95) - 1];
+            if (p95 >= P95_BUDGET_MS) throw new Error(`p95 ${p95}ms exceeds ${P95_BUDGET_MS}ms`);
+          };
+
+          exports.handler = handler;
+
+  CanarySuccessAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmDescription: greeter-http health canary is failing its checks.
+      Namespace: CloudWatchSynthetics
+      MetricName: SuccessPercent
+      Dimensions:
+        - Name: CanaryName
+          Value: !Ref HealthCanary
+      Statistic: Average
+      Period: 300                      # one canary run (5 min)
+      EvaluationPeriods: 1
+      Threshold: 100                   # anything < 100% success pages
+      ComparisonOperator: LessThanThreshold
+      TreatMissingData: breaching      # no data = canary not running = page
+      AlarmActions:
+        - !Ref PagingTopic
+      OKActions:
+        - !Ref PagingTopic
 
 Outputs:
   ApiBaseUrl:
@@ -246,3 +470,9 @@ Outputs:
   TableName:
     Description: DynamoDB table name.
     Value: !Ref GreetingsTable
+  PagingTopicArn:
+    Description: SNS topic that the three paging alarms notify.
+    Value: !Ref PagingTopic
+  HealthCanaryName:
+    Description: CloudWatch Synthetics health canary.
+    Value: !Ref HealthCanary

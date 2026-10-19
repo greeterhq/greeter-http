@@ -16,16 +16,19 @@ module GreeterHttp
         @greeting_counter = greeting_counter
       end
 
+      # @param synthetic [Boolean] when true, the counter records under an
+      #   isolated key space so monitoring traffic never affects real counts.
       # @raise [Greeter::Core::Domain::InvalidGuestName] propagated from core;
       #   the counter is NOT touched when the name is invalid.
-      def call(raw_name:, idempotency_key:)
+      def call(raw_name:, idempotency_key:, synthetic: false)
         greeting = @greeting_service.greet(raw_name)
         guest_name = greeting.guest_name
 
         result = @greeting_counter.increment(
           guest: guest_name.display,
           idempotency_key: idempotency_key,
-          fingerprint: fingerprint_for(guest_name)
+          fingerprint: fingerprint_for(guest_name),
+          synthetic: synthetic
         )
 
         GreetedGuest.new(
