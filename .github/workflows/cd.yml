@@ -1,0 +1,202 @@
+# .github/workflows/cd.yml
+#
+# Continuous deployment for greeter-http.
+#
+# Trigger: a repository_dispatch "deploy-release" event, fired by ci.yml's
+# release job after it publishes a GitHub Release for a v* tag. The dispatch
+# carries the tag in client_payload.tag.
+#
+# Flow (build-once, deploy-the-same-bytes — CD never rebuilds; it deploys the
+# exact artifact CI published):
+#     download+verify release artifact (tag)
+#       -> deploy DEV -> smoke DEV
+#       -> manual approval (GitHub "prod" environment)
+#       -> deploy PROD -> smoke PROD
+# On a smoke failure at either stage, infra/rollback.sh runs and the job fails.
+#
+# The greeter-core lockfile bump lives in ci.yml (bump-core), not here.
+#
+# AUTH: GitHub OIDC -> an AWS IAM role (vars.AWS_DEPLOY_ROLE_ARN). No long-lived
+# AWS keys are stored.
+#
+# Required GitHub config (Settings -> Secrets and variables -> Actions, and
+# Environments):
+#   vars.AWS_REGION              e.g. eu-west-2
+#   vars.AWS_DEPLOY_ROLE_ARN     IAM role trusting this repo via OIDC
+#   vars.DEV_STACK_NAME          e.g. greeter-http-dev
+#   vars.PROD_STACK_NAME         e.g. greeter-http-prod
+#   Environments "dev" and "prod"; put required reviewers on "prod" for the
+#   manual approval gate.
+#
+# The smoke base URL is NOT a variable: each deploy job reads the stack's
+# ApiBaseUrl output after deploying, so there is no URL to maintain by hand.
+
+name: CD
+
+"on":
+  repository_dispatch:
+    types: [deploy-release]
+
+concurrency:
+  group: cd-deploy
+  cancel-in-progress: false    # never interrupt an in-flight deploy
+
+env:
+  BUNDLER_VERSION: "4.0.22"
+
+jobs:
+  # ═══════════════════════════════════════════════════════════════════════════
+  # deploy DEV + smoke. Downloads and verifies the exact release artifact CI
+  # published for this tag, then deploys it. Rollback on smoke failure.
+  # ═══════════════════════════════════════════════════════════════════════════
+  deploy-dev:
+    name: Deploy dev
+    runs-on: ubuntu-latest
+    environment: dev
+    permissions:
+      id-token: write          # OIDC -> AWS
+      contents: read           # download the release asset
+    steps:
+      - uses: actions/checkout@v5
+
+      # Ruby + the bundle for the smoke step (bin/smoke + cucumber @smoke come
+      # from the checked-out repo; the artifact holds only the Lambda bundle).
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: .ruby-version
+          bundler: ${{ env.BUNDLER_VERSION }}
+          bundler-cache: true
+
+      - uses: aws-actions/setup-sam@v2
+        with:
+          use-installer: true
+
+      - name: Download + verify the release artifact
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.event.client_payload.tag }}
+        run: |
+          test -n "${TAG}" || { echo "::error::no tag in client_payload"; exit 1; }
+          gh release download "${TAG}" --repo "${GITHUB_REPOSITORY}" \
+            --pattern "greeter-http-${TAG}.tar.gz" \
+            --pattern "greeter-http-${TAG}.tar.gz.sha256"
+          shasum -a 256 -c "greeter-http-${TAG}.tar.gz.sha256"
+          tar -xzf "greeter-http-${TAG}.tar.gz"
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Deploy to dev
+        env:
+          TAG: ${{ github.event.client_payload.tag }}
+        run: |
+          # The artifact unpacks to greeter-http-<tag>/ with a built
+          # .aws-sam/build/ inside; deploy from there so SAM uses the packaged
+          # template + vendored code (no rebuild).
+          cd "greeter-http-${TAG}"
+          sam deploy \
+            --stack-name '${{ vars.DEV_STACK_NAME }}' \
+            --region '${{ vars.AWS_REGION }}' \
+            --no-confirm-changeset --no-fail-on-empty-changeset \
+            --capabilities CAPABILITY_IAM \
+            --resolve-s3
+
+      - name: Smoke dev (bin/smoke + cucumber @smoke)
+        id: smoke
+        run: |
+          # Resolve the API URL from the stack's ApiBaseUrl output, so there is
+          # no chicken-and-egg base-URL variable to maintain (the URL only
+          # exists after the first deploy creates the API).
+          url="$(aws cloudformation describe-stacks \
+            --stack-name '${{ vars.DEV_STACK_NAME }}' \
+            --region '${{ vars.AWS_REGION }}' \
+            --query "Stacks[0].Outputs[?OutputKey=='ApiBaseUrl'].OutputValue" \
+            --output text)"
+          test -n "${url}" && test "${url}" != "None" \
+            || { echo "::error::could not resolve ApiBaseUrl from stack ${{ vars.DEV_STACK_NAME }}"; exit 1; }
+          echo "resolved GREETER_BASE_URL=${url}"
+          export GREETER_BASE_URL="${url}"
+          bin/smoke
+          bundle exec cucumber --tags @smoke --format progress
+
+      - name: Rollback dev on smoke failure
+        if: failure() && steps.smoke.outcome == 'failure'
+        run: infra/rollback.sh '${{ vars.DEV_STACK_NAME }}' '${{ vars.AWS_REGION }}'
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # deploy PROD + smoke. The "prod" environment's required-reviewer rule is the
+  # MANUAL APPROVAL gate: this job stays queued until a reviewer approves.
+  # Deploys the SAME artifact verified for dev. Rollback on smoke failure.
+  # ═══════════════════════════════════════════════════════════════════════════
+  deploy-prod:
+    name: Deploy prod
+    needs: deploy-dev
+    runs-on: ubuntu-latest
+    environment: prod          # add required reviewers here => manual approval
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: .ruby-version
+          bundler: ${{ env.BUNDLER_VERSION }}
+          bundler-cache: true
+
+      - uses: aws-actions/setup-sam@v2
+        with:
+          use-installer: true
+
+      - name: Download + verify the release artifact
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.event.client_payload.tag }}
+        run: |
+          test -n "${TAG}" || { echo "::error::no tag in client_payload"; exit 1; }
+          gh release download "${TAG}" --repo "${GITHUB_REPOSITORY}" \
+            --pattern "greeter-http-${TAG}.tar.gz" \
+            --pattern "greeter-http-${TAG}.tar.gz.sha256"
+          shasum -a 256 -c "greeter-http-${TAG}.tar.gz.sha256"
+          tar -xzf "greeter-http-${TAG}.tar.gz"
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Deploy to prod
+        env:
+          TAG: ${{ github.event.client_payload.tag }}
+        run: |
+          cd "greeter-http-${TAG}"
+          sam deploy \
+            --stack-name '${{ vars.PROD_STACK_NAME }}' \
+            --region '${{ vars.AWS_REGION }}' \
+            --no-confirm-changeset --no-fail-on-empty-changeset \
+            --capabilities CAPABILITY_IAM \
+            --resolve-s3
+
+      - name: Smoke prod (bin/smoke + cucumber @smoke)
+        id: smoke
+        run: |
+          url="$(aws cloudformation describe-stacks \
+            --stack-name '${{ vars.PROD_STACK_NAME }}' \
+            --region '${{ vars.AWS_REGION }}' \
+            --query "Stacks[0].Outputs[?OutputKey=='ApiBaseUrl'].OutputValue" \
+            --output text)"
+          test -n "${url}" && test "${url}" != "None" \
+            || { echo "::error::could not resolve ApiBaseUrl from stack ${{ vars.PROD_STACK_NAME }}"; exit 1; }
+          echo "resolved GREETER_BASE_URL=${url}"
+          export GREETER_BASE_URL="${url}"
+          bin/smoke
+          bundle exec cucumber --tags @smoke --format progress
+
+      - name: Rollback prod on smoke failure
+        if: failure() && steps.smoke.outcome == 'failure'
+        run: infra/rollback.sh '${{ vars.PROD_STACK_NAME }}' '${{ vars.AWS_REGION }}'

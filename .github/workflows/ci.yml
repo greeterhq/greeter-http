@@ -18,8 +18,13 @@
 #   security    – Brakeman, bundler-audit, iam-check, security-scan
 #                 (cfn-lint + checkov, STRICT).
 #                                            needs: lint
-#   release     – on v* tags only: sam build + packaged Lambda artifact.
+#   release     – on v* tags only: sam build + packaged Lambda artifact, then
+#                 fires a "deploy-release" dispatch so CD deploys THIS artifact.
 #                 needs: perf, functional, spec-gate, security
+#
+# Separately, on a repository_dispatch "greeter-core-released" event (sent by
+# greeter-core's release workflow), ONLY the bump-core job runs: it opens a
+# lockfile-only bump PR. None of the validation/release jobs run on that event.
 #
 # Ruby is pinned by the repo's .ruby-version (3.3.5); the Gemfile intentionally
 # carries no `ruby` directive so the Lambda ruby3.3 managed runtime is accepted
@@ -33,6 +38,11 @@ name: CI
     tags: ["v*"]
   pull_request:
     branches: ["**"]
+  # Fired by greeter-core's release workflow. Handled ONLY by the bump-core job
+  # below (every validation job is guarded off this event). Opens a lockfile
+  # bump PR; it does not run the test suite or release.
+  repository_dispatch:
+    types: [greeter-core-released]
 
 # Cancel in-flight runs for the same ref so a fast-follow push doesn't queue.
 concurrency:
@@ -55,6 +65,10 @@ jobs:
 # ═════════════════════════════════════════════════════════════════════════════
   lint:
     name: Linting
+    # Validation runs for code events (push/PR/tag), never for the
+    # greeter-core-released dispatch — that event is handled by bump-core only.
+    # Gating the DAG root skips every job that needs it (and thus release too).
+    if: github.event_name != 'repository_dispatch'
     runs-on: ubuntu-latest
 
     steps:
@@ -329,3 +343,86 @@ jobs:
             dependency set is in the bundled `Gemfile.lock`.
           generate_release_notes: true
           fail_on_unmatched_files: true
+
+      # Hand off to the CD workflow: the release is published, so tell CD to
+      # deploy THIS tag's artifact (build-once, deploy-the-same-bytes). CD
+      # listens for repository_dispatch type "deploy-release".
+      #
+      # NOTE: a dispatch sent with the default GITHUB_TOKEN does NOT trigger
+      # another workflow (GitHub suppresses recursive workflow triggers from
+      # GITHUB_TOKEN). To actually start CD, this must use a PAT / fine-grained
+      # token with "contents: write" (+ repo dispatch) stored as CD_DISPATCH_TOKEN.
+      # Falls back to GITHUB_TOKEN if that secret is absent (the dispatch is
+      # recorded but will not start CD — deploy the release manually in that case).
+      - name: Trigger CD to deploy this release
+        env:
+          GH_TOKEN: ${{ secrets.CD_DISPATCH_TOKEN || secrets.GITHUB_TOKEN }}
+        run: |
+          gh api "repos/${GITHUB_REPOSITORY}/dispatches" \
+            -f event_type=deploy-release \
+            -F "client_payload[tag]=${GITHUB_REF_NAME}"
+
+# ═════════════════════════════════════════════════════════════════════════════
+# bump-core  (repository_dispatch "greeter-core-released" only)
+#
+# When greeter-core publishes a release, its workflow sends this repo a
+# "greeter-core-released" dispatch. This job conservatively bumps greeter-core
+# in Gemfile.lock and opens a PR — LOCKFILE ONLY. It deliberately does NOT touch
+# lib/greeter_http/version.rb or create a tag: the human who reviews the PR
+# decides the semver bump (patch/minor/major) and cuts the release tag on merge.
+# The PR then flows through normal CI; deployment happens later via the
+# release -> deploy-release -> CD path.
+# ═════════════════════════════════════════════════════════════════════════════
+  bump-core:
+    name: Bump greeter-core (PR)
+    if: github.event_name == 'repository_dispatch' && github.event.action == 'greeter-core-released'
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write          # push the bump branch
+      pull-requests: write     # open the PR
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: .ruby-version
+          bundler: ${{ env.BUNDLER_VERSION }}
+          bundler-cache: true
+
+      - name: Bump greeter-core in the lockfile
+        id: bump
+        run: |
+          before="$(bundle exec ruby -e 'require "bundler"; puts Bundler.locked_gems.specs.find { |s| s.name == "greeter-core" }&.version')"
+          bundle update --conservative greeter-core
+          after="$(bundle exec ruby -e 'require "bundler"; puts Bundler.locked_gems.specs.find { |s| s.name == "greeter-core" }&.version')"
+          echo "before=${before}" >> "$GITHUB_OUTPUT"
+          echo "after=${after}" >> "$GITHUB_OUTPUT"
+          if [ "${before}" = "${after}" ]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "greeter-core already at ${after}; nothing to do."
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Open PR with the lockfile bump
+        if: steps.bump.outputs.changed == 'true'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          branch: bump/greeter-core-${{ steps.bump.outputs.after }}
+          add-paths: Gemfile.lock
+          commit-message: "deps: bump greeter-core ${{ steps.bump.outputs.before }} -> ${{ steps.bump.outputs.after }}"
+          title: "deps: bump greeter-core to ${{ steps.bump.outputs.after }}"
+          labels: dependencies
+          body: |
+            Automated **lockfile-only** bump triggered by a `greeter-core-released` dispatch.
+
+            `greeter-core` `${{ steps.bump.outputs.before }}` → `${{ steps.bump.outputs.after }}` in `Gemfile.lock`.
+
+            This PR intentionally does **not** change `lib/greeter_http/version.rb`
+            or create a tag. On merge, decide the greeter-http semver bump
+            (patch/minor/major) based on the impact of this core change, bump
+            `version.rb`, and push the matching `v*` tag — that cuts the release
+            and (via CD) deploys it.
+

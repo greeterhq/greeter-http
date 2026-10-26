@@ -1,0 +1,247 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "CloudFormationStacks",
+      "Effect": "Allow",
+      "Action": [
+        "cloudformation:CreateStack",
+        "cloudformation:UpdateStack",
+        "cloudformation:DeleteStack",
+        "cloudformation:DescribeStacks",
+        "cloudformation:DescribeStackEvents",
+        "cloudformation:DescribeStackResources",
+        "cloudformation:DescribeStackResource",
+        "cloudformation:GetTemplate",
+        "cloudformation:GetTemplateSummary",
+        "cloudformation:ListStackResources",
+        "cloudformation:CreateChangeSet",
+        "cloudformation:DescribeChangeSet",
+        "cloudformation:ExecuteChangeSet",
+        "cloudformation:DeleteChangeSet",
+        "cloudformation:ListChangeSets",
+        "cloudformation:TagResource",
+        "cloudformation:UntagResource"
+      ],
+      "Resource": [
+        "arn:aws:cloudformation:eu-west-2:757721680185:stack/greeter-http-dev/*",
+        "arn:aws:cloudformation:eu-west-2:757721680185:stack/greeter-http-prod/*",
+        "arn:aws:cloudformation:eu-west-2:757721680185:stack/aws-sam-cli-managed-default/*"
+      ]
+    },
+    {
+      "Sid": "CloudFormationReadOnlyGlobal",
+      "Effect": "Allow",
+      "Action": [
+        "cloudformation:ListStacks",
+        "cloudformation:ValidateTemplate"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "SamPackagingBucket",
+      "Effect": "Allow",
+      "Action": [
+        "s3:CreateBucket",
+        "s3:GetBucketPolicy",
+        "s3:PutBucketPolicy",
+        "s3:PutBucketTagging",
+        "s3:PutBucketVersioning",
+        "s3:PutEncryptionConfiguration",
+        "s3:GetObject",
+        "s3:PutObject",
+        "s3:GetBucketLocation",
+        "s3:ListBucket"
+      ],
+      "Resource": [
+        "arn:aws:s3:::aws-sam-cli-managed-default*",
+        "arn:aws:s3:::aws-sam-cli-managed-default*/*"
+      ]
+    },
+    {
+      "Sid": "CanaryArtifactsBucketLifecycle",
+      "Effect": "Allow",
+      "Action": [
+        "s3:CreateBucket",
+        "s3:DeleteBucket",
+        "s3:PutBucketTagging",
+        "s3:PutBucketPublicAccessBlock",
+        "s3:GetBucketPublicAccessBlock",
+        "s3:PutEncryptionConfiguration",
+        "s3:GetEncryptionConfiguration",
+        "s3:PutLifecycleConfiguration",
+        "s3:GetLifecycleConfiguration",
+        "s3:GetBucketLocation"
+      ],
+      "Resource": [
+        "arn:aws:s3:::greeter-http-dev-*",
+        "arn:aws:s3:::greeter-http-prod-*"
+      ]
+    },
+    {
+      "Sid": "IamRolesForStackResources",
+      "Effect": "Allow",
+      "Action": [
+        "iam:CreateRole",
+        "iam:DeleteRole",
+        "iam:GetRole",
+        "iam:UpdateRole",
+        "iam:TagRole",
+        "iam:UntagRole",
+        "iam:PassRole",
+        "iam:PutRolePolicy",
+        "iam:DeleteRolePolicy",
+        "iam:GetRolePolicy",
+        "iam:AttachRolePolicy",
+        "iam:DetachRolePolicy",
+        "iam:ListRolePolicies",
+        "iam:ListAttachedRolePolicies"
+      ],
+      "Resource": [
+        "arn:aws:iam::757721680185:role/greeter-http-dev-*",
+        "arn:aws:iam::757721680185:role/greeter-http-prod-*"
+      ]
+    },
+    {
+      "Sid": "Lambda",
+      "Effect": "Allow",
+      "Action": [
+        "lambda:CreateFunction",
+        "lambda:DeleteFunction",
+        "lambda:GetFunction",
+        "lambda:GetFunctionConfiguration",
+        "lambda:UpdateFunctionCode",
+        "lambda:UpdateFunctionConfiguration",
+        "lambda:ListVersionsByFunction",
+        "lambda:PublishVersion",
+        "lambda:CreateAlias",
+        "lambda:UpdateAlias",
+        "lambda:DeleteAlias",
+        "lambda:GetAlias",
+        "lambda:AddPermission",
+        "lambda:RemovePermission",
+        "lambda:GetPolicy",
+        "lambda:TagResource",
+        "lambda:UntagResource",
+        "lambda:ListTags"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "ApiGatewayV2",
+      "Effect": "Allow",
+      "Action": [
+        "apigateway:GET",
+        "apigateway:POST",
+        "apigateway:PUT",
+        "apigateway:PATCH",
+        "apigateway:DELETE"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "DynamoDB",
+      "Effect": "Allow",
+      "Action": [
+        "dynamodb:CreateTable",
+        "dynamodb:DeleteTable",
+        "dynamodb:DescribeTable",
+        "dynamodb:DescribeContinuousBackups",
+        "dynamodb:UpdateContinuousBackups",
+        "dynamodb:DescribeTimeToLive",
+        "dynamodb:UpdateTimeToLive",
+        "dynamodb:TagResource",
+        "dynamodb:UntagResource",
+        "dynamodb:ListTagsOfResource",
+        "dynamodb:UpdateTable"
+      ],
+      "Resource": [
+        "arn:aws:dynamodb:eu-west-2:757721680185:table/greeter-http-dev-*",
+        "arn:aws:dynamodb:eu-west-2:757721680185:table/greeter-http-prod-*"
+      ]
+    },
+    {
+      "Sid": "KmsKey",
+      "Effect": "Allow",
+      "Action": [
+        "kms:CreateKey",
+        "kms:DescribeKey",
+        "kms:EnableKeyRotation",
+        "kms:GetKeyRotationStatus",
+        "kms:GetKeyPolicy",
+        "kms:PutKeyPolicy",
+        "kms:TagResource",
+        "kms:UntagResource",
+        "kms:ScheduleKeyDeletion",
+        "kms:ListResourceTags",
+        "kms:CreateAlias",
+        "kms:DeleteAlias"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "CloudWatchLogs",
+      "Effect": "Allow",
+      "Action": [
+        "logs:CreateLogGroup",
+        "logs:DeleteLogGroup",
+        "logs:DescribeLogGroups",
+        "logs:PutRetentionPolicy",
+        "logs:DeleteRetentionPolicy",
+        "logs:AssociateKmsKey",
+        "logs:DisassociateKmsKey",
+        "logs:TagLogGroup",
+        "logs:TagResource",
+        "logs:ListTagsForResource"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "CloudWatchAlarms",
+      "Effect": "Allow",
+      "Action": [
+        "cloudwatch:PutMetricAlarm",
+        "cloudwatch:DeleteAlarms",
+        "cloudwatch:DescribeAlarms",
+        "cloudwatch:TagResource",
+        "cloudwatch:UntagResource",
+        "cloudwatch:ListTagsForResource"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "SnsTopic",
+      "Effect": "Allow",
+      "Action": [
+        "sns:CreateTopic",
+        "sns:DeleteTopic",
+        "sns:GetTopicAttributes",
+        "sns:SetTopicAttributes",
+        "sns:Subscribe",
+        "sns:Unsubscribe",
+        "sns:ListSubscriptionsByTopic",
+        "sns:TagResource",
+        "sns:UntagResource",
+        "sns:ListTagsForResource"
+      ],
+      "Resource": "arn:aws:sns:eu-west-2:757721680185:greeter-http-*"
+    },
+    {
+      "Sid": "SyntheticsCanary",
+      "Effect": "Allow",
+      "Action": [
+        "synthetics:CreateCanary",
+        "synthetics:DeleteCanary",
+        "synthetics:GetCanary",
+        "synthetics:UpdateCanary",
+        "synthetics:StartCanary",
+        "synthetics:StopCanary",
+        "synthetics:DescribeCanaries",
+        "synthetics:TagResource",
+        "synthetics:UntagResource",
+        "synthetics:ListTagsForResource"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
