@@ -24,7 +24,13 @@ aws iam put-role-policy \
 Where an AWS API supports resource-level ARNs **and** the physical name is
 predictable, statements are scoped to those ARNs:
 
-- **CloudFormation** — the two stack ARNs + the SAM managed bootstrap stack.
+- **CloudFormation** — the two stack ARNs + the SAM managed bootstrap stack,
+  plus the AWS-owned `transform/Serverless-2016-10-31` macro ARN. Deploying a
+  SAM template runs that transform to expand `AWS::Serverless::*` resources, and
+  CloudFormation checks `CreateChangeSet` against the transform resource as well
+  as the target stack. The ARN lives in the `aws` account namespace (not ours),
+  so the stack-scoped ARNs don't cover it; it is named explicitly, not
+  wildcarded.
 - **DynamoDB** — tables named `greeter-http-{dev,prod}-*`.
 - **IAM roles** — roles named `greeter-http-{dev,prod}-*` (SAM creates the
   function execution role and the canary role; `PassRole` is scoped the same).

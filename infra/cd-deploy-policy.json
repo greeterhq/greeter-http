@@ -26,7 +26,8 @@
       "Resource": [
         "arn:aws:cloudformation:eu-west-2:757721680185:stack/greeter-http-dev/*",
         "arn:aws:cloudformation:eu-west-2:757721680185:stack/greeter-http-prod/*",
-        "arn:aws:cloudformation:eu-west-2:757721680185:stack/aws-sam-cli-managed-default/*"
+        "arn:aws:cloudformation:eu-west-2:757721680185:stack/aws-sam-cli-managed-default/*",
+        "arn:aws:cloudformation:eu-west-2:aws:transform/Serverless-2016-10-31"
       ]
     },
     {
