@@ -73,6 +73,8 @@ fileignoreconfig:
   checksum: cd9007cc8cf13fd8c6c2922d93ca061c6cf18287bf41f715008a50697cbf4e77
 - filename: features/support/env.rb
   checksum: 8a53a245f11f6278c458910d947564839734d7236eb851e9e8299b76b0c92abb
+- filename: infra/cd-deploy-policy.md
+  checksum: 806c075c7dff7ec7c7684fa2932b5157caf02ced78ccf3748d6bde10ca736b08
 - filename: infra/template.yaml
   checksum: c3a4be4d91566e46a2627aced8798d04c3a82abe7332f73a4a8d22761bbd06d2
 - filename: lib/greeter_http/adapters/disabled_greeting_counter.rb

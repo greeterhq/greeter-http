@@ -176,7 +176,11 @@
         "kms:ScheduleKeyDeletion",
         "kms:ListResourceTags",
         "kms:CreateAlias",
-        "kms:DeleteAlias"
+        "kms:DeleteAlias",
+        "kms:Encrypt",
+        "kms:Decrypt",
+        "kms:GenerateDataKey",
+        "kms:GenerateDataKeyWithoutPlaintext"
       ],
       "Resource": "*"
     },

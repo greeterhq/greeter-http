@@ -47,6 +47,15 @@ verbs a deploy needs) with `Resource: "*"` — deliberate, not an oversight:
 Tighten these to ARNs once the physical names are stable if you want a second
 hardening pass.
 
+The **KMS** statement carries both control-plane and data-plane actions. The
+control-plane verbs (`CreateKey`, `PutKeyPolicy`, rotation, aliases, tagging)
+create and manage the key. The data-plane verbs (`Encrypt`, `Decrypt`,
+`GenerateDataKey`, `GenerateDataKeyWithoutPlaintext`) are needed at deploy time
+because the Lambda has encrypted environment variables: CloudFormation creating
+the function makes Lambda call `kms:Encrypt`/`GenerateDataKey` as the *deploying*
+principal to wrap those vars. Without them the key is created but the function
+create fails with a KMS `AccessDenied`.
+
 ## Caveats
 
 - **Not yet proven by a real deploy.** This policy was derived from the resource
