@@ -52,6 +52,20 @@ to the HTTP verbs: API Gateway treats tagging as a distinct action (not covered
 by `apigateway:PUT`/`POST`), and SAM tags the stage on create, so without it the
 stage create fails with `AccessDenied` on `apigateway:TagResource`.
 
+Two resources need permissions outside their "own" service:
+
+- The **HTTP API stage** has access logging to a log group. Enabling it goes
+  through the CloudWatch Logs vended-logs delivery API, so the **CloudWatchLogs**
+  statement carries `logs:*LogDelivery`/`ListLogDeliveries` plus
+  `logs:PutResourcePolicy`/`DescribeResourcePolicies` (the delivery adds a
+  resource policy to the log group). Without these the stage create fails with
+  `logs:CreateLogDelivery` AccessDenied.
+- The **Synthetics canary** packages its runtime as a Lambda layer that
+  Synthetics publishes as the deploying principal, so the **Lambda** statement
+  carries `lambda:PublishLayerVersion` (+ `GetLayerVersion`/`DeleteLayerVersion`
+  for update/teardown). Without it the canary create fails with
+  `lambda:PublishLayerVersion` AccessDenied.
+
 The **KMS** statement carries both control-plane and data-plane actions. The
 control-plane verbs (`CreateKey`, `PutKeyPolicy`, rotation, aliases, tagging)
 create and manage the key. The data-plane verbs (`Encrypt`, `Decrypt`,

@@ -124,7 +124,10 @@
         "lambda:GetPolicy",
         "lambda:TagResource",
         "lambda:UntagResource",
-        "lambda:ListTags"
+        "lambda:ListTags",
+        "lambda:PublishLayerVersion",
+        "lambda:DeleteLayerVersion",
+        "lambda:GetLayerVersion"
       ],
       "Resource": "*"
     },
@@ -202,7 +205,14 @@
         "logs:DisassociateKmsKey",
         "logs:TagLogGroup",
         "logs:TagResource",
-        "logs:ListTagsForResource"
+        "logs:ListTagsForResource",
+        "logs:CreateLogDelivery",
+        "logs:GetLogDelivery",
+        "logs:UpdateLogDelivery",
+        "logs:DeleteLogDelivery",
+        "logs:ListLogDeliveries",
+        "logs:PutResourcePolicy",
+        "logs:DescribeResourcePolicies"
       ],
       "Resource": "*"
     },
