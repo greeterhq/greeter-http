@@ -53,8 +53,11 @@ create and manage the key. The data-plane verbs (`Encrypt`, `Decrypt`,
 `GenerateDataKey`, `GenerateDataKeyWithoutPlaintext`) are needed at deploy time
 because the Lambda has encrypted environment variables: CloudFormation creating
 the function makes Lambda call `kms:Encrypt`/`GenerateDataKey` as the *deploying*
-principal to wrap those vars. Without them the key is created but the function
-create fails with a KMS `AccessDenied`.
+principal to wrap those vars, and `kms:CreateGrant` to let the function's
+execution role decrypt them on cold start without editing the key policy.
+`ListGrants`/`RevokeGrant` cover the grant's lifecycle on stack update/delete.
+Without these the key is created but the function create fails with a KMS
+`AccessDenied` (first on `Encrypt`, then on `CreateGrant`).
 
 ## Caveats
 
