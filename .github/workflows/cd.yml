@@ -83,6 +83,13 @@ jobs:
           shasum -a 256 -c "greeter-http-${TAG}.tar.gz.sha256"
           tar -xzf "greeter-http-${TAG}.tar.gz"
 
+      - name: Debug OIDC claims
+        run: |
+          echo "ACTIONS_ID_TOKEN_REQUEST_URL present: ${ACTIONS_ID_TOKEN_REQUEST_URL:+yes}"
+          TOKEN="$(curl -sH "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=sts.amazonaws.com" | jq -r '.value')"
+          echo "$TOKEN" | cut -d. -f2 | base64 -d 2>/dev/null | jq '{sub, aud, repository, repository_owner}'
+          
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
