@@ -80,6 +80,15 @@
       ]
     },
     {
+      "Sid": "SyntheticsRuntimeLibrary",
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetObject",
+        "s3:GetObjectVersion"
+      ],
+      "Resource": "arn:aws:s3:::aws-synthetics-library-eu-west-2/*"
+    },
+    {
       "Sid": "IamRolesForStackResources",
       "Effect": "Allow",
       "Action": [

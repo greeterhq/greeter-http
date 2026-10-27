@@ -65,6 +65,14 @@ Two resources need permissions outside their "own" service:
   carries `lambda:PublishLayerVersion` (+ `GetLayerVersion`/`DeleteLayerVersion`
   for update/teardown). Without it the canary create fails with
   `lambda:PublishLayerVersion` AccessDenied.
+- The canary also reads its base runtime from the AWS-owned S3 bucket
+  `aws-synthetics-library-<region>` (here `eu-west-2`). The
+  `SyntheticsRuntimeLibrary` statement grants read-only `s3:GetObject`/
+  `GetObjectVersion` on that exact bucket ARN (AWS-owned, not ours — named
+  explicitly, not wildcarded, like the CloudFormation transform). Without it the
+  canary create fails with S3 `AccessDenied` on `GetObjectVersion` of
+  `library.zip`. The ARN is region-specific; change the region suffix if the
+  stack moves regions.
 
 The **KMS** statement carries both control-plane and data-plane actions. The
 control-plane verbs (`CreateKey`, `PutKeyPolicy`, rotation, aliases, tagging)
