@@ -47,6 +47,11 @@ verbs a deploy needs) with `Resource: "*"` — deliberate, not an oversight:
 Tighten these to ARNs once the physical names are stable if you want a second
 hardening pass.
 
+The **API Gateway v2** statement needs `TagResource`/`UntagResource` in addition
+to the HTTP verbs: API Gateway treats tagging as a distinct action (not covered
+by `apigateway:PUT`/`POST`), and SAM tags the stage on create, so without it the
+stage create fails with `AccessDenied` on `apigateway:TagResource`.
+
 The **KMS** statement carries both control-plane and data-plane actions. The
 control-plane verbs (`CreateKey`, `PutKeyPolicy`, rotation, aliases, tagging)
 create and manage the key. The data-plane verbs (`Encrypt`, `Decrypt`,
