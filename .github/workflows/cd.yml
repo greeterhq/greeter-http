@@ -43,6 +43,14 @@ concurrency:
 
 env:
   BUNDLER_VERSION: "4.0.22"
+  # Post-deploy smoke latency budget. bin/smoke fires 20 SERIAL calls (a new
+  # TLS connection per call, no concurrency) as a liveness + correctness check,
+  # so its p95 sits well above the service's true warm latency. The real
+  # latency SLO is owned by perf/http_bench.rb, which measures steady-state p95
+  # under concurrent load with cold start excluded (observed ~80 ms vs its
+  # 300 ms gate). This looser 500 ms bar keeps smoke as a liveness gate without
+  # duplicating — and underperforming against — that SLO measurement.
+  GREETER_SMOKE_P95_MS: "500"
 
 jobs:
   # ═══════════════════════════════════════════════════════════════════════════
@@ -126,21 +134,6 @@ jobs:
             || { echo "::error::could not resolve ApiBaseUrl from stack ${{ vars.DEV_STACK_NAME }}"; exit 1; }
           echo "resolved GREETER_BASE_URL=${url}"
           export GREETER_BASE_URL="${url}"
-          # Warm up before measuring: bin/smoke's p95 budget is a WARM
-          # steady-state bar, but this stack was created seconds ago, so the
-          # first calls pay Ruby cold start + first DynamoDB/SDK init. Fire a
-          # few throwaway greetings (same shape bin/smoke uses) so that
-          # one-off cost is spent here, not inside the measured sample. Output
-          # is discarded; failures here are ignored on purpose — bin/smoke is
-          # the actual gate.
-          echo "warming up ${url} before measuring latency"
-          for i in 1 2 3 4 5; do
-            curl -s -o /dev/null -X POST "${url%/}/greetings" \
-              -H 'Content-Type: application/json' \
-              -H "Idempotency-Key: warmup-$i-$RANDOM" \
-              -d '{"name":"warmup"}' || true
-          done
-          sleep 2
           bin/smoke
           bundle exec cucumber --tags @smoke --format progress
 
@@ -216,21 +209,6 @@ jobs:
             || { echo "::error::could not resolve ApiBaseUrl from stack ${{ vars.PROD_STACK_NAME }}"; exit 1; }
           echo "resolved GREETER_BASE_URL=${url}"
           export GREETER_BASE_URL="${url}"
-          # Warm up before measuring: bin/smoke's p95 budget is a WARM
-          # steady-state bar, but this stack was created seconds ago, so the
-          # first calls pay Ruby cold start + first DynamoDB/SDK init. Fire a
-          # few throwaway greetings (same shape bin/smoke uses) so that
-          # one-off cost is spent here, not inside the measured sample. Output
-          # is discarded; failures here are ignored on purpose — bin/smoke is
-          # the actual gate.
-          echo "warming up ${url} before measuring latency"
-          for i in 1 2 3 4 5; do
-            curl -s -o /dev/null -X POST "${url%/}/greetings" \
-              -H 'Content-Type: application/json' \
-              -H "Idempotency-Key: warmup-$i-$RANDOM" \
-              -d '{"name":"warmup"}' || true
-          done
-          sleep 2
           bin/smoke
           bundle exec cucumber --tags @smoke --format progress
 
