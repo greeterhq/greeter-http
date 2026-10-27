@@ -11,7 +11,10 @@
         "token.actions.githubusercontent.com:aud": "sts.amazonaws.com"
       },
       "StringLike": {
-        "token.actions.githubusercontent.com:sub": "repo:greeterhq/greeter-http:*"
+        "token.actions.githubusercontent.com:sub": [
+          "repo:greeterhq@343557488/greeter-http@1411751625:environment:dev",
+          "repo:greeterhq@343557488/greeter-http@1411751625:environment:prod"
+        ]
       }
     }
   }]
