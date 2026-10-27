@@ -44,6 +44,10 @@ rspec_examples.txt
 /pkg/
 /tmp/
 *.zip
+# `sam deploy --guided` writes this locally (pins a stack name, personal AWS
+# profile, and s3 prefix). CD passes --stack-name/--region explicitly and must
+# never inherit a committed config, so keep it out of the repo and the artifact.
+/samconfig.toml
 
 # Logs
 *.log
