@@ -43,14 +43,6 @@ concurrency:
 
 env:
   BUNDLER_VERSION: "4.0.22"
-  # Post-deploy smoke latency budget. bin/smoke fires 20 SERIAL calls (a new
-  # TLS connection per call, no concurrency) as a liveness + correctness check,
-  # so its p95 sits well above the service's true warm latency. The real
-  # latency SLO is owned by perf/http_bench.rb, which measures steady-state p95
-  # under concurrent load with cold start excluded (observed ~80 ms vs its
-  # 300 ms gate). This looser 500 ms bar keeps smoke as a liveness gate without
-  # duplicating — and underperforming against — that SLO measurement.
-  GREETER_SMOKE_P95_MS: "500"
 
 jobs:
   # ═══════════════════════════════════════════════════════════════════════════

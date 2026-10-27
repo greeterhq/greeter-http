@@ -9,7 +9,12 @@
 #   1. A valid greeting for a fresh guest succeeds (2xx) and its count
 #      INCREMENTS when the same guest is greeted again with a new key.
 #   2. A malformed request is rejected with HTTP 400.
-#   3. The p95 latency over 20 greeting calls is under 300 ms.
+#
+# This is a LIVENESS + CORRECTNESS gate, not a latency gate. The latency SLO is
+# owned by perf/http_bench.rb, which measures steady-state p95 under concurrent
+# load with cold start excluded and regression-checks it against a baseline. A
+# small serial p95 sampled here measures per-call TLS/connection setup noise and
+# swings too much run-to-run to gate on, so it is deliberately not asserted.
 #
 # Notes on status codes (matching the service's real contract):
 #   - A new greeting returns 201 and a replay 200, so "success" accepts any 2xx
@@ -25,8 +30,6 @@ require 'json'
 require 'securerandom'
 
 BASE_URL = ENV['GREETER_BASE_URL'].to_s
-P95_BUDGET_MS = Float(ENV.fetch('GREETER_SMOKE_P95_MS', 300))
-LATENCY_SAMPLES = Integer(ENV.fetch('GREETER_SMOKE_SAMPLES', 20))
 
 abort 'smoke: GREETER_BASE_URL is not set' if BASE_URL.empty?
 
@@ -34,12 +37,8 @@ ENDPOINT = URI.join("#{BASE_URL.chomp('/')}/", 'greetings')
 
 failures = []
 
-def monotonic
-  Process.clock_gettime(Process::CLOCK_MONOTONIC)
-end
-
 # POST a greeting. `raw_body` overrides the JSON body for the malformed case.
-# Returns [Net::HTTPResponse, elapsed_ms].
+# Returns the Net::HTTPResponse.
 def post(name: nil, key: SecureRandom.uuid, raw_body: nil)
   http = Net::HTTP.new(ENDPOINT.host, ENDPOINT.port)
   http.use_ssl = (ENDPOINT.scheme == 'https')
@@ -47,16 +46,7 @@ def post(name: nil, key: SecureRandom.uuid, raw_body: nil)
   req['Content-Type'] = 'application/json'
   req['Idempotency-Key'] = key
   req.body = raw_body || JSON.generate('name' => name)
-  t0 = monotonic
-  resp = http.request(req)
-  [resp, (monotonic - t0) * 1000.0]
-end
-
-def pct(sorted_ms, fraction)
-  return 0.0 if sorted_ms.empty?
-
-  idx = (sorted_ms.length * fraction).ceil - 1
-  sorted_ms[idx.clamp(0, sorted_ms.length - 1)]
+  http.request(req)
 end
 
 # Safely pull the numeric "count" from a response body; nil if absent/unparsable.
@@ -71,8 +61,8 @@ end
 # --- Check 1: valid greeting succeeds and the count increments --------------
 puts '== check 1: valid greeting increments =='
 guest = "smoke guest #{SecureRandom.hex(4)}" # fresh guest -> count starts at 1
-resp1, = post(name: guest)
-resp2, = post(name: guest) # same guest, new key -> count should go up
+resp1 = post(name: guest)
+resp2 = post(name: guest) # same guest, new key -> count should go up
 
 first  = parsed_count(resp1)
 second = parsed_count(resp2)
@@ -89,22 +79,12 @@ end
 
 # --- Check 2: malformed request -> 400 --------------------------------------
 puts '== check 2: malformed request rejected with 400 =='
-resp, = post(raw_body: '{"name": ') # broken JSON
+resp = post(raw_body: '{"name": ') # broken JSON
 if resp.code == '400'
   puts "  ok: #{resp.code}"
 else
   failures << "malformed request did not return 400 (got #{resp.code})"
 end
-
-# --- Check 3: p95 of 20 calls < budget --------------------------------------
-puts "== check 3: p95 of #{LATENCY_SAMPLES} calls < #{P95_BUDGET_MS} ms =="
-latencies = Array.new(LATENCY_SAMPLES) do
-  _, ms = post(name: "smoke latency #{SecureRandom.hex(4)}")
-  ms
-end
-p95 = pct(latencies.sort, 0.95)
-puts format('  p50=%.1f ms  p95=%.1f ms  max=%.1f ms', pct(latencies.sort, 0.5), p95, latencies.max)
-failures << format('p95 %.1f ms exceeds %.1f ms budget', p95, P95_BUDGET_MS) if p95 >= P95_BUDGET_MS
 
 # --- Result -----------------------------------------------------------------
 puts

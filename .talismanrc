@@ -66,7 +66,7 @@ fileignoreconfig:
 - filename: bin/iam-check
   checksum: 70c512b3f9e7a95e95c20ab0b0bf5c3d1b3eb61809e290fcbe1c809ad1a2f941
 - filename: bin/smoke
-  checksum: f266eaf30861623b93d51bd5b90bdbbb07f79fafb12e60535d13abaeb508a43e
+  checksum: 2ee33ace64f1823b5932e40ec23e16f5c97c8c11f35566830ee83abaeb82035f
 - filename: docs/observability.md
   checksum: 1035c24ac34d27fee9656a510b5236811b42cc1e0118b6a170c06eede553a3f9  
 - filename: features/step_definitions/smoke_steps.rb
