@@ -1,6 +1,6 @@
 fileignoreconfig:
 - filename: .github/workflows/cd.yml
-  checksum: 79e7a39560b13e660e0a128ab1456d0189e8a8f5b8a5ba026cb39518b90707ad
+  checksum: 2b11aed2d21a8a86dfe87bf707b91aa518444f3f7d3f1fd8e396b832372e07ab
 - filename: .github/workflows/ci.yml
   checksum: eac5aa94d69f890302fb06ee8478798bb73be02564ba23daa4b4891d854b8245
 - filename: spec/security/http_security_spec.rb

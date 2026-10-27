@@ -89,7 +89,7 @@ jobs:
           TOKEN="$(curl -sH "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
             "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=sts.amazonaws.com" | jq -r '.value')"
           echo "$TOKEN" | cut -d. -f2 | base64 -d 2>/dev/null | jq '{sub, aud, repository, repository_owner}'
-          
+
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -126,6 +126,21 @@ jobs:
             || { echo "::error::could not resolve ApiBaseUrl from stack ${{ vars.DEV_STACK_NAME }}"; exit 1; }
           echo "resolved GREETER_BASE_URL=${url}"
           export GREETER_BASE_URL="${url}"
+          # Warm up before measuring: bin/smoke's p95 budget is a WARM
+          # steady-state bar, but this stack was created seconds ago, so the
+          # first calls pay Ruby cold start + first DynamoDB/SDK init. Fire a
+          # few throwaway greetings (same shape bin/smoke uses) so that
+          # one-off cost is spent here, not inside the measured sample. Output
+          # is discarded; failures here are ignored on purpose — bin/smoke is
+          # the actual gate.
+          echo "warming up ${url} before measuring latency"
+          for i in 1 2 3 4 5; do
+            curl -s -o /dev/null -X POST "${url%/}/greetings" \
+              -H 'Content-Type: application/json' \
+              -H "Idempotency-Key: warmup-$i-$RANDOM" \
+              -d '{"name":"warmup"}' || true
+          done
+          sleep 2
           bin/smoke
           bundle exec cucumber --tags @smoke --format progress
 
@@ -201,6 +216,21 @@ jobs:
             || { echo "::error::could not resolve ApiBaseUrl from stack ${{ vars.PROD_STACK_NAME }}"; exit 1; }
           echo "resolved GREETER_BASE_URL=${url}"
           export GREETER_BASE_URL="${url}"
+          # Warm up before measuring: bin/smoke's p95 budget is a WARM
+          # steady-state bar, but this stack was created seconds ago, so the
+          # first calls pay Ruby cold start + first DynamoDB/SDK init. Fire a
+          # few throwaway greetings (same shape bin/smoke uses) so that
+          # one-off cost is spent here, not inside the measured sample. Output
+          # is discarded; failures here are ignored on purpose — bin/smoke is
+          # the actual gate.
+          echo "warming up ${url} before measuring latency"
+          for i in 1 2 3 4 5; do
+            curl -s -o /dev/null -X POST "${url%/}/greetings" \
+              -H 'Content-Type: application/json' \
+              -H "Idempotency-Key: warmup-$i-$RANDOM" \
+              -d '{"name":"warmup"}' || true
+          done
+          sleep 2
           bin/smoke
           bundle exec cucumber --tags @smoke --format progress
 
