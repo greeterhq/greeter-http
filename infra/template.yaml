@@ -200,10 +200,12 @@ Resources:
       KmsKeyId: !GetAtt EncryptionKey.Arn
 
   # Access-log group for the HTTP API, CMK-encrypted (CKV_AWS_158).
+  # Name is stack-scoped so dev and prod stacks in the same account/region do
+  # not collide on this account-global log-group name.
   HttpApiAccessLogGroup:
     Type: AWS::Logs::LogGroup
     Properties:
-      LogGroupName: /aws/apigateway/greeter-http-access
+      LogGroupName: !Sub /aws/apigateway/${AWS::StackName}-access
       RetentionInDays: 14
       KmsKeyId: !GetAtt EncryptionKey.Arn
 
@@ -360,7 +362,10 @@ Resources:
   HealthCanary:
     Type: AWS::Synthetics::Canary
     Properties:
-      Name: greeter-http-health
+      # Canary names are account/region-global and capped at 21 chars, lowercase
+      # alnum/hyphen/underscore. Use the stack name so dev and prod do not
+      # collide (greeter-http-dev / greeter-http-prod are both within the cap).
+      Name: !Ref AWS::StackName
       ArtifactS3Location: !Sub s3://${CanaryArtifactsBucket}/canary
       ExecutionRoleArn: !GetAtt CanaryRole.Arn
       RuntimeVersion: syn-nodejs-puppeteer-9.0
