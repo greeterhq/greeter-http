@@ -378,18 +378,21 @@ Resources:
           GREETER_BASE_URL: !Sub https://${HttpApi}.execute-api.${AWS::Region}.amazonaws.com
       Code:
         Handler: index.handler
-        # Inline Node.js canary. Mirrors bin/smoke's checks against the live
-        # endpoint: valid greeting -> 2xx with an incrementing count; malformed
-        # body -> 400; p95 of 20 calls < 300 ms. Sends x-greeter-synthetic:true
-        # so this monitoring traffic is tagged in logs and isolated in the
-        # counter (synthetic# key prefix). A failed assertion throws, which
-        # fails the canary run and drives the SuccessPercent alarm below.
+        # Inline Node.js canary. Availability + correctness monitoring against
+        # the live endpoint: valid greeting -> 2xx with an incrementing count;
+        # malformed body -> 400. Latency is deliberately NOT asserted here — the
+        # p95 SLO is owned by HttpLatencyP95Alarm (a metric alarm over real
+        # request traffic) and perf/http_bench.rb; a synthetic pass/fail probe
+        # over a handful of self-generated calls is the wrong tool for it.
+        # Sends x-greeter-synthetic:true so this monitoring traffic is tagged in
+        # logs and isolated in the counter (synthetic# key prefix). A failed
+        # assertion throws, which fails the canary run and drives the
+        # SuccessPercent alarm below.
         Script: |
           const https = require('https');
           const { URL } = require('url');
 
           const BASE = process.env.GREETER_BASE_URL;
-          const P95_BUDGET_MS = 300;
 
           function post(bodyObj, rawBody) {
             const u = new URL(BASE.replace(/\/$/, '') + '/greetings');
@@ -404,12 +407,11 @@ Resources:
                 'x-greeter-synthetic': 'true',
               },
             };
-            const start = Date.now();
             return new Promise((resolve, reject) => {
               const req = https.request(opts, (res) => {
                 let data = '';
                 res.on('data', (c) => (data += c));
-                res.on('end', () => resolve({ status: res.statusCode, body: data, ms: Date.now() - start }));
+                res.on('end', () => resolve({ status: res.statusCode, body: data }));
               });
               req.on('error', reject);
               req.write(body);
@@ -434,16 +436,6 @@ Resources:
             // Check 2: malformed body -> 400.
             const bad = await post(null, '{"name": ');
             if (bad.status !== 400) throw new Error(`malformed not 400: ${bad.status}`);
-
-            // Check 3: p95 of 20 calls < budget.
-            const lat = [];
-            for (let i = 0; i < 20; i++) {
-              const r = await post({ name: `canary latency ${Date.now()}-${i}` });
-              lat.push(r.ms);
-            }
-            lat.sort((a, b) => a - b);
-            const p95 = lat[Math.ceil(lat.length * 0.95) - 1];
-            if (p95 >= P95_BUDGET_MS) throw new Error(`p95 ${p95}ms exceeds ${P95_BUDGET_MS}ms`);
           };
 
           exports.handler = handler;
