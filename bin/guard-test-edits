@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 payload=$(cat)
-if echo "$payload" | grep -Eq '"(path|file_path)"\s*:\s*"([^"]*/)?(spec|features)/'; then
+if echo "$payload" | grep -Eq '"(path|file_path|targetFile)"\s*:\s*"([^"]*/)?(spec|features)/'; then
   [[ -f tmp/allow-test-edits ]] && exit 0
   echo "Blocked: tests are read-only during apply. Run: touch tmp/allow-test-edits for the test-writing step." >&2
   exit 2

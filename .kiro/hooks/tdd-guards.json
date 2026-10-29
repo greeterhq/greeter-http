@@ -4,7 +4,7 @@
     {
       "name": "run-related-spec-on-save",
       "description": "Run the unit suite whenever lib/ changes",
-      "trigger": "FileSave",
+      "trigger": "PostFileSave",
       "matcher": "lib/greeter_http/.*\\.rb$",
       "action": {
         "type": "command",
@@ -14,7 +14,7 @@
     },
     {
       "name": "rubocop-on-save",
-      "trigger": "FileSave",
+      "trigger": "PostFileSave",
       "matcher": "\\.rb$",
       "action": { "type": "command", "command": "bundle exec rubocop -A --fail-level E" }
     },
@@ -22,12 +22,12 @@
       "name": "protect-tests-during-apply",
       "description": "Block agent writes to spec/ and features/ unless I approve",
       "trigger": "PreToolUse",
-      "matcher": "(write|edit|fs_write)",
+      "matcher": "fs_write|str_replace|fs_append",
       "action": { "type": "command", "command": "bin/guard-test-edits" }
     },
     {
       "name": "full-suite-when-agent-stops",
-      "trigger": "AgentStop",
+      "trigger": "Stop",
       "action": {
         "type": "command",
         "command": "bundle exec rspec && bundle exec cucumber && openspec validate --all --strict --no-interactive"

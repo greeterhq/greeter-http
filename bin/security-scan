@@ -32,9 +32,10 @@ missing=0
 
 section() { printf '\n=== %s ===\n' "$1"; }
 
-# have <cmd> — true if a runnable scanner is available. bundle-audit is run via
-# bundler so it is always available when the bundle is installed; the IaC tools
-# are standalone binaries that may or may not be present.
+# run_or_skip <display-name> <cmd> [args...] — run a scanner if its command is
+# available, else report a SKIP (counted in `missing`, and a failure under
+# STRICT). bundle-audit is handled separately above because it runs via bundler;
+# the IaC tools here are standalone binaries that may or may not be present.
 run_or_skip() {
   local name="$1"; shift
   if ! command -v "$1" >/dev/null 2>&1; then
