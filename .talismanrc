@@ -101,6 +101,8 @@ fileignoreconfig:
   checksum: 1e4d0f6ee3f89457c55b3d818568bccd4bcf264943ab7a394b1bcb88c6551633
 - filename: openspec/changes/add-greeting-counter-http/design.md
   checksum: 693bc9131385acae2bf3557ce3e7fe044a6a52e020f60671952796a3244f8751
+- filename: openspec/specs/greeting-counter/spec.md
+  checksum: 6f96e629eca6fc135e9dd6ba0f1bf247ca52b07dee832acb1ec17a36bffcd4b9
 - filename: perf/http_bench.rb
   checksum: fb6fe61e814be384a6d52c6d22e2b99eb692053d80343d45b4608013785af93a
 - filename: perf/load.rb
