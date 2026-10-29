@@ -180,6 +180,72 @@ DynamoDB client, a system clock implementing `Ports::Clock`, and the **TTL windo
 fakes (in-memory counter, `Greeter::Core::Testing::FixedClock`) through the same
 keyword-argument seams.
 
+### D10. Deploy identity — GitHub OIDC + a dedicated deploy role, distinct from the execution role
+
+CI/CD authenticates to AWS with GitHub OIDC (`trust.json`) assuming a dedicated IAM
+role (`infra/cd-deploy-policy.json`) — no long-lived keys. The trust policy matches
+this repo's `dev`/`prod` **environment** subjects in GitHub's immutable numeric-ID
+subject format (`repo:<org>@<id>/<repo>@<id>:environment:<env>`); a plain
+`repo:owner/name:*` pattern would not match tokens minted in that format.
+
+There are **two different roles with two different scopes, on purpose**:
+
+- The **Lambda execution role** (D-elsewhere / template) is tight: `GetItem` +
+  `PutItem` + `UpdateItem` on the one table, `Decrypt` on the one CMK. Unchanged.
+- The **deploy role** is necessarily broad — it creates the *entire* stack:
+  CloudFormation, the SAM managed bootstrap bucket, KMS, Synthetics, CloudWatch
+  Logs (including the vended-logs delivery for API access logging), API Gateway v2,
+  SNS, DynamoDB, and `greeter-http-*` IAM roles (with `PassRole` scoped to that name
+  prefix). A few statements use `Resource: "*"` where the AWS API has no
+  resource-level ARN on the relevant create/tag action, or target an **AWS-owned**
+  ARN named explicitly (the `Serverless-2016-10-31` transform; the
+  `aws-synthetics-library-<region>` runtime bucket). The per-statement rationale is
+  in `infra/cd-deploy-policy.md`, and the policy passes the repo's `bin/iam-check`
+  least-privilege gate. Broadening the deploy role does not touch the execution
+  role's scope.
+
+This policy was proven by iterated real deploys, not derived on paper: the first
+prod deploy also surfaced that two account-global physical names collided with dev
+(see D13).
+
+### D11. Monitoring — canary + alarms are liveness/correctness; latency lives in the metric alarm
+
+A CloudWatch Synthetics canary runs the same two assertions as `bin/smoke` against
+the live endpoint every 5 minutes — valid greeting returns 2xx with an incrementing
+count, and a malformed body returns `400` — and pages via the SNS topic on failure.
+
+Neither the canary nor `bin/smoke` asserts latency. A synthetic pass/fail probe over
+a handful of serial calls measures per-call TLS/connection-setup noise and swings too
+much run-to-run to gate on; it is the wrong instrument for a percentile SLO. The p95
+latency SLO is owned by (a) `HttpLatencyP95Alarm`, a CloudWatch metric alarm over the
+API's real request stream, and (b) `perf/http_bench.rb`, which measures steady-state
+p95 under concurrent load with cold start excluded and regression-checks it against a
+baseline. Keeping latency in exactly those two places — and out of the liveness
+probes — avoids a flaky gate that pages on probe noise rather than real regressions.
+
+### D12. One customer-managed CMK for env vars, logs, and the paging topic
+
+A single CMK encrypts the Lambda environment variables, both log groups, and the SNS
+topic. The key policy grants the account root admin, the `logs.<region>` service
+principal encrypt/describe (without which log delivery to an encrypted group silently
+fails), and the `cloudwatch` service principal decrypt/generate-data-key (so alarms
+can publish to the encrypted topic). Note a consequence for deploy permissions: with
+CMK-encrypted Lambda env vars, CloudFormation makes Lambda call `kms:Encrypt`,
+`GenerateDataKey`, and `CreateGrant` as the *deploying* principal — so the deploy
+role (D10) carries those KMS data-plane actions, not only control-plane ones.
+
+### D13. Stack-scoped physical names for account-global resources
+
+The Synthetics canary `Name` and the API access-log group `LogGroupName` are
+account/region-global identifiers. Hardcoding them (`greeter-http-health`,
+`/aws/apigateway/greeter-http-access`) let dev deploy first but made the prod
+`CreateChangeSet` fail its `ResourceExistenceCheck` — the names were already taken by
+dev in the same account/region. Both are now derived from `AWS::StackName`
+(`!Ref AWS::StackName` for the canary — within the 21-char cap; `${AWS::StackName}-access`
+for the log group), so dev and prod coexist. Renaming forces replacement of those two
+resources on dev's next deploy; both are monitoring plumbing with no stored data, so
+replacement is safe.
+
 ## Risks / Trade-offs
 
 - **Optimistic-lock retries under contention** → bounded retry with exponential
@@ -201,6 +267,12 @@ keyword-argument seams.
   makes accidental collision negligible; this is not a security boundary.
 - **Store coupling to DynamoDB semantics** → isolated behind `GreetingCounter`; a
   different store would be a new adapter, no change to application or ports.
+- **Canary artifacts bucket blocks stack deletion when non-empty** → the canary
+  writes run artifacts to `CanaryArtifactsBucket`, and CloudFormation cannot delete a
+  non-empty bucket, so a stack teardown can land in `DELETE_FAILED`. Mitigated by the
+  bucket's 30-day expiration lifecycle rule; a teardown while artifacts are still
+  present needs the bucket emptied first (or `delete-stack --retain-resources` then a
+  manual bucket cleanup). Not relied on for correctness — it only affects teardown.
 
 ## Migration Plan
 

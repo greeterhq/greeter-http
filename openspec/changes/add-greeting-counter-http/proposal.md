@@ -28,6 +28,22 @@ delivery that Lambda/API Gateway imply (retries must not double-count).
   (PITR) and server-side encryption (SSE); a least-privilege IAM policy limited to
   reading and conditionally writing that one table; X-Ray tracing; 14-day CloudWatch
   log retention; and CloudWatch alarms on 5xx rate and p95 latency.
+- Encrypt at rest with one customer-managed KMS key (CMK) covering the Lambda
+  environment variables, both log groups, and the paging SNS topic; the key policy
+  grants the CloudWatch Logs and CloudWatch service principals the operations they
+  need.
+- Monitor the live endpoint with a CloudWatch Synthetics canary that runs the same
+  liveness + correctness checks as `bin/smoke` on a schedule, plus a paging SNS
+  topic fed by three alarms (5xx rate, p95 latency, canary success).
+- Deliver continuously via GitHub Actions: CI validates (lint, functional, perf,
+  security/IaC, OpenSpec gate) and publishes a versioned SAM build artifact on `v*`
+  tags; CD deploys that exact artifact (build-once, deploy-the-same-bytes) to dev,
+  then to prod behind a manual-approval gate. Deploy auth is GitHub OIDC assuming a
+  dedicated IAM deploy role — no long-lived AWS keys.
+- Gate each deploy with a post-deploy smoke check (`bin/smoke`) and a performance
+  benchmark (`perf/http_bench.rb`). Smoke and the canary assert liveness +
+  correctness only; the latency SLO is owned by the p95 CloudWatch metric alarm and
+  the perf benchmark, not by a synthetic serial-sample probe.
 
 ## Capabilities
 
@@ -57,6 +73,25 @@ delivery that Lambda/API Gateway imply (retries must not double-count).
     the transactional conditional write (`TransactWriteItems`) the optimistic-lock
     counter uses — not a blanket table policy.
   - CloudWatch alarms on the HTTP API 5xx rate and p95 latency.
+  - A customer-managed KMS CMK (env vars, log groups, SNS topic), a paging SNS
+    topic, and a CloudWatch Synthetics canary with its own execution role and a
+    30-day-lifecycle artifacts bucket.
+  - The canary name and the API access-log group name are **stack-scoped**
+    (derived from `AWS::StackName`) so the dev and prod stacks coexist in one
+    account/region without colliding on those account-global names.
+- **CI/CD** (`.github/workflows/ci.yml`, `.github/workflows/cd.yml`):
+  - GitHub OIDC trust (`trust.json`) to a dedicated IAM **deploy role**
+    (`infra/cd-deploy-policy.json`), scoped to this repo's `dev`/`prod` environment
+    subjects. No long-lived AWS credentials.
+  - The **deploy role is deliberately broader than the Lambda execution role**: it
+    creates the entire stack (CloudFormation, S3, KMS, Synthetics, Logs, API
+    Gateway, SNS, and `greeter-http-*` IAM roles). A few statements use
+    `Resource: "*"` where the service exposes no resource-level ARN on its create
+    actions; the rationale is recorded in `infra/cd-deploy-policy.md` and the policy
+    passes the repo's `bin/iam-check` gate. This is separate from — and does not
+    weaken — the Lambda execution role's tight single-table + single-key scope.
+  - `bin/smoke` (post-deploy liveness + correctness) and `perf/http_bench.rb`
+    (latency SLO + regression gate).
 - **Contract**: new public HTTP API (`POST /greetings`) with defined status codes
   (201/200/400/422/409/503) and JSON bodies.
 - **No change** to `greeter-core`; `vendor/greeter-core-api.md` documents the composed surface.
