@@ -1,6 +1,6 @@
 ---
 inclusion: fileMatch
-fileMatchPattern: ["lib/greeter_http/adapters/**/*.rb]", "infra/**/*"]
+fileMatchPattern: ["lib/greeter_http/adapters/**/*.rb", "infra/**/*"]
 ---
 # AWS adapter rules
 - Aws::DynamoDB::Client is always injected, never constructed in an adapter.
