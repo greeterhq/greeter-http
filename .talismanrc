@@ -12,7 +12,7 @@ fileignoreconfig:
 - filename: .kiro/prompts/opsx-apply.prompt.md
   checksum: d9850646f538f9a8e80cf183e8e918361401df4721c1ba36f85408749c9c4eb5
 - filename: .kiro/prompts/opsx-verify.prompt.md
-  checksum: 9e5bc21c47a071de2c57d60336a2ff19f23f051d569ca4965767dfbd944dd719
+  checksum: c6bdd8aa10b8aa5ba3dde78a8ec8e3422c834d265433612d3ced275d12aa92db
 - filename: .kiro/prompts/opsx-new.prompt.md
   checksum: ebcb3131cf71c1300ee3383ced47a56c89f1aaaf012d6f9292ba481a39a7e132
 - filename: .kiro/prompts/opsx-ff.prompt.md
@@ -44,7 +44,7 @@ fileignoreconfig:
 - filename: .kiro/skills/openspec-bulk-archive-change/SKILL.md
   checksum: aa7ce6008d91f8eaa49bcdc8f12726c6576b7f7d98d2bce79a8b35eaf2ffc312
 - filename: .kiro/skills/openspec-verify-change/SKILL.md
-  checksum: f26a91a4833917534bdb679a6c71f697e6bd2c8775d68a0d45d1e78fce5e091a
+  checksum: d48ac81ec022b040f1ac05525894fa5067e40c7651d1fbd2a427df5aa0907b69
 - filename: .kiro/prompts/opsx-sync.prompt.md
   checksum: 45b6ebf627bea01112d56dc2b4cc8750e4acc57f9ab0d3da3400839d208ec3b4
 - filename: .kiro/skills/openspec-explore/SKILL.md
