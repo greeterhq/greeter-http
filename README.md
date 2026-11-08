@@ -86,7 +86,8 @@ exact, even under concurrent requests and retries.
 
 ## Requirements
 
-- Ruby 3.3.x (pinned to 3.3.5 locally via `.ruby-version`). The `Gemfile`
+- Ruby 3.3.x (pinned to 3.3.13 locally via `.ruby-version`; CI uses the latest
+  3.3.x). The `Gemfile`
   deliberately carries no `ruby` directive so the Lambda `ruby3.3` managed
   runtime (currently a 3.3.x patch) is accepted at deploy time.
 - Bundler
@@ -561,7 +562,7 @@ What the release job does on a `v*` tag:
 
 - Asserts `GreeterHttp::VERSION` equals the tag (minus the `v`), failing the
   release before any build if they drift.
-- Runs `sam build` on the GitHub Ubuntu runner (its host Ruby is 3.3.5 via
+- Runs `sam build` on the GitHub Ubuntu runner (its host Ruby is the latest 3.3.x via
   `setup-ruby`, matching the Lambda `ruby3.3` ABI, so a plain `sam build`
   vendors gems correctly — no `--use-container` needed in CI).
 - Packages a tarball `greeter-http-v0.1.0.tar.gz` laid out as a ready-to-deploy

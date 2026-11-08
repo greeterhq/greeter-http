@@ -26,7 +26,8 @@
 # greeter-core's release workflow), ONLY the bump-core job runs: it opens a
 # lockfile-only bump PR. None of the validation/release jobs run on that event.
 #
-# Ruby is pinned by the repo's .ruby-version (3.3.5); the Gemfile intentionally
+# CI uses the latest Ruby 3.3.x (env.RUBY_VERSION); .ruby-version pins 3.3.13
+# for local development only. The Gemfile intentionally
 # carries no `ruby` directive so the Lambda ruby3.3 managed runtime is accepted
 # at deploy time.
 
@@ -53,6 +54,11 @@ env:
   BUNDLE_JOBS: 4
   BUNDLE_RETRY: 3
   # Bundler must match `BUNDLED WITH` in Gemfile.lock.
+  # "3.3" tracks the latest 3.3.x: newer runner images (ubuntu-26.04, which
+  # ubuntu-latest now resolves to) only build the latest patch of each series,
+  # so an exact pin like 3.3.5 fails with a 404. Matches the Lambda ruby3.3
+  # runtime, which is also a 3.3.x patch. Keep in sync with cd.yml.
+  RUBY_VERSION: "3.3"
   BUNDLER_VERSION: "4.0.22"
   # Pin the OpenSpec CLI so the spec-gate is reproducible (a floating @latest
   # can add rules that fail the gate with no change to the repo). Keep in sync
@@ -76,7 +82,7 @@ jobs:
 
       - uses: ruby/setup-ruby@v1
         with:
-          ruby-version: .ruby-version
+          ruby-version: ${{ env.RUBY_VERSION }}
           bundler: ${{ env.BUNDLER_VERSION }}
           bundler-cache: true
 
@@ -106,7 +112,7 @@ jobs:
 
       - uses: ruby/setup-ruby@v1
         with:
-          ruby-version: .ruby-version
+          ruby-version: ${{ env.RUBY_VERSION }}
           bundler: ${{ env.BUNDLER_VERSION }}
           bundler-cache: true
 
@@ -145,7 +151,7 @@ jobs:
 
       - uses: ruby/setup-ruby@v1
         with:
-          ruby-version: .ruby-version
+          ruby-version: ${{ env.RUBY_VERSION }}
           bundler: ${{ env.BUNDLER_VERSION }}
           bundler-cache: true
 
@@ -183,7 +189,7 @@ jobs:
 
       - uses: ruby/setup-ruby@v1
         with:
-          ruby-version: .ruby-version
+          ruby-version: ${{ env.RUBY_VERSION }}
           bundler: ${{ env.BUNDLER_VERSION }}
           bundler-cache: true
 
@@ -262,7 +268,7 @@ jobs:
 # greeter-http deploys as an AWS Lambda, so the "release asset" is the packaged
 # SAM build artifact (the function code + its vendored gems) plus the template,
 # tarred and attached to a GitHub Release. On the GitHub Ubuntu runner the host
-# Ruby is 3.3.5 (via setup-ruby), matching the Lambda ruby3.3 runtime's ABI, so
+# Ruby is the latest 3.3.x (via setup-ruby), matching the Lambda ruby3.3 runtime's ABI, so
 # a plain `sam build` vendors gems correctly — `--use-container` is only needed
 # locally when the host Ruby differs from the runtime.
 # ═════════════════════════════════════════════════════════════════════════════
@@ -280,7 +286,7 @@ jobs:
 
       - uses: ruby/setup-ruby@v1
         with:
-          ruby-version: .ruby-version
+          ruby-version: ${{ env.RUBY_VERSION }}
           bundler: ${{ env.BUNDLER_VERSION }}
           bundler-cache: true
 
@@ -387,7 +393,7 @@ jobs:
 
       - uses: ruby/setup-ruby@v1
         with:
-          ruby-version: .ruby-version
+          ruby-version: ${{ env.RUBY_VERSION }}
           bundler: ${{ env.BUNDLER_VERSION }}
           bundler-cache: true
 

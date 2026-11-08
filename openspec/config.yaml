@@ -1,7 +1,7 @@
 schema: spec-driven
 
 context: |
-  greeter-http: Ruby 3.3.5 Rack app on AWS Lambda behind API Gateway HTTP API,
+  greeter-http: Ruby 3.3.x Rack app on AWS Lambda behind API Gateway HTTP API,
   DynamoDB for per-guest counts and idempotency records. Deployed with SAM
   (infra/template.yaml) until Wave 2. Hexagonal: lib/greeter_http/{application,
   ports,adapters}, app.rb is the only composition root. greeter-core is a
