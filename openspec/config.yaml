@@ -1,32 +1,28 @@
 schema: spec-driven
 
-# Project context (optional)
-# This is shown to AI when creating artifacts.
-# Add your tech stack, conventions, style guides, domain knowledge, etc.
-# Example:
-#   context: |
-#     Tech stack: TypeScript, React, Node.js
-#     We use conventional commits
-#     Domain: e-commerce platform
+context: |
+  greeter-http: Ruby 3.3.x Rack app on AWS Lambda behind API Gateway HTTP API,
+  DynamoDB for per-guest counts and idempotency records. Deployed with SAM
+  (infra/template.yaml) until Wave 2. Hexagonal: lib/greeter_http/{application,
+  ports,adapters}, app.rb is the only composition root. greeter-core is a
+  dependency and is never modified here.
+  HTTP contract (do not change in Wave 1): POST /greetings with JSON {"name"}
+  and a required Idempotency-Key header. 201 first success, 200 replay,
+  400 malformed JSON or missing key, 409 key reused with a different name,
+  413 body too large, 422 {"error":"invalid_name"}, 503 + Retry-After on
+  transient storage failure. X-Greeter-Synthetic: true keeps monitoring traffic
+  out of real counts.
+  TDD: failing test committed before the implementation
+  (test(<change>): red, then feat(<change>): ...).
 
-# Per-artifact rules (optional)
-# Add custom rules for specific artifacts.
-# Example:
-#   rules:
-#     proposal:
-#       - Keep proposals under 500 words
-#       - Always include a "Non-goals" section
-#     tasks:
-#       - Break tasks into chunks of max 2 hours
-
-# Per-operation guidance (optional)
-# Add advisory guidance for how apply and archive work should be conducted.
-# This is separate from artifact rules above.
-# Example:
-#   operations:
-#     apply:
-#       guidance:
-#         - Keep test summaries concise
-#     archive:
-#       guidance:
-#         - Summarize the archive outcome before finishing
+rules:
+  proposal:
+    - Include a "Non-goals" section.
+    - State which repos the change touches and whether greeter-core is affected (it must not be in Wave 1).
+  specs:
+    - Use WHEN/THEN scenarios that a Cucumber or RSpec test can assert directly.
+    - Reference status codes and error codes exactly as in the greeting-counter spec.
+  tasks:
+    - First task group is always "Red tests" and lists every test file to write.
+    - Keep each task under two hours.
+    - Last task group is "Verify and docs" (rspec, cucumber, rubocop, sam validate, openspec validate).

@@ -1,4 +1,6 @@
 fileignoreconfig:
+- filename: .github/workflows/app-token-smoke.yml
+  checksum: 80e74b4df6c564915342ffc0798b3579c5866909b45ef8de8e902fa5d4224e50
 - filename: .github/workflows/cd.yml
   checksum: 2b11aed2d21a8a86dfe87bf707b91aa518444f3f7d3f1fd8e396b832372e07ab
 - filename: .github/workflows/ci.yml
@@ -12,7 +14,7 @@ fileignoreconfig:
 - filename: .kiro/prompts/opsx-apply.prompt.md
   checksum: d9850646f538f9a8e80cf183e8e918361401df4721c1ba36f85408749c9c4eb5
 - filename: .kiro/prompts/opsx-verify.prompt.md
-  checksum: 9e5bc21c47a071de2c57d60336a2ff19f23f051d569ca4965767dfbd944dd719
+  checksum: c6bdd8aa10b8aa5ba3dde78a8ec8e3422c834d265433612d3ced275d12aa92db
 - filename: .kiro/prompts/opsx-new.prompt.md
   checksum: ebcb3131cf71c1300ee3383ced47a56c89f1aaaf012d6f9292ba481a39a7e132
 - filename: .kiro/prompts/opsx-ff.prompt.md
@@ -44,7 +46,7 @@ fileignoreconfig:
 - filename: .kiro/skills/openspec-bulk-archive-change/SKILL.md
   checksum: aa7ce6008d91f8eaa49bcdc8f12726c6576b7f7d98d2bce79a8b35eaf2ffc312
 - filename: .kiro/skills/openspec-verify-change/SKILL.md
-  checksum: f26a91a4833917534bdb679a6c71f697e6bd2c8775d68a0d45d1e78fce5e091a
+  checksum: d48ac81ec022b040f1ac05525894fa5067e40c7651d1fbd2a427df5aa0907b69
 - filename: .kiro/prompts/opsx-sync.prompt.md
   checksum: 45b6ebf627bea01112d56dc2b4cc8750e4acc57f9ab0d3da3400839d208ec3b4
 - filename: .kiro/skills/openspec-explore/SKILL.md
@@ -58,7 +60,7 @@ fileignoreconfig:
 - filename: .rubocop.yml
   checksum: 105232f388caae629d30c624ba681ad5f6001e6e93ac558d39fb172da43989d5
 - filename: Gemfile.lock
-  checksum: ec060f175f17ba9bd8e686a1d3c9b25fa56deb9b32281b45c0fca5e32478bb7f
+  checksum: feaebe740697fa631769ec6ffbc27db64d952c4b67da6ea63910994a8d53ff9b
 - filename: README.md
   checksum: 08304bd7e381920147b7319a4ea24828f698ce8cca9ea401a38f29e5b4af9f67
 - filename: env.json.example
@@ -101,6 +103,8 @@ fileignoreconfig:
   checksum: 1e4d0f6ee3f89457c55b3d818568bccd4bcf264943ab7a394b1bcb88c6551633
 - filename: openspec/changes/add-greeting-counter-http/design.md
   checksum: 693bc9131385acae2bf3557ce3e7fe044a6a52e020f60671952796a3244f8751
+- filename: openspec/config.yaml
+  checksum: e3a1bcecd66c30e5fe2b977dca8604281de0ffc2b8133a1183a5aa6ba92790be
 - filename: openspec/specs/greeting-counter/spec.md
   checksum: 6f96e629eca6fc135e9dd6ba0f1bf247ca52b07dee832acb1ec17a36bffcd4b9
 - filename: perf/http_bench.rb
