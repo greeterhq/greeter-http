@@ -1,4 +1,6 @@
 fileignoreconfig:
+- filename: .github/workflows/app-token-smoke.yml
+  checksum: 80e74b4df6c564915342ffc0798b3579c5866909b45ef8de8e902fa5d4224e50
 - filename: .github/workflows/cd.yml
   checksum: 2b11aed2d21a8a86dfe87bf707b91aa518444f3f7d3f1fd8e396b832372e07ab
 - filename: .github/workflows/ci.yml

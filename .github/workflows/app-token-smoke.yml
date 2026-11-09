@@ -1,0 +1,75 @@
+# Temporary. Lives only on the smoke/app-token branch; never merge it.
+name: App token smoke test
+
+"on":
+  push:
+    branches: [smoke/app-token]
+
+permissions: {}
+
+env:
+  TARGET: greeter-acceptance  # the one repo this sender may dispatch to
+  OTHER: greeter-docs         # installed, but outside this token's scope
+  NOT_INSTALLED: greeter-core # the app is not installed here
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 1. Variable and secret are present
+        env:
+          CLIENT_ID: ${{ vars.DISPATCH_APP_CLIENT_ID }}
+          HAS_KEY: ${{ secrets.DISPATCH_APP_PRIVATE_KEY != '' }}
+        run: |
+          test -n "$CLIENT_ID" || { echo "::error::variable DISPATCH_APP_CLIENT_ID is missing"; exit 1; }
+          test "$HAS_KEY" = true || { echo "::error::secret DISPATCH_APP_PRIVATE_KEY is missing"; exit 1; }
+
+      - name: 2. Mint a token for the target repo
+        id: app
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ vars.DISPATCH_APP_CLIENT_ID }}
+          private-key: ${{ secrets.DISPATCH_APP_PRIVATE_KEY }}
+          owner: greeterhq
+          repositories: ${{ env.TARGET }}
+
+      - name: 3. Token reaches exactly one repo
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+        run: |
+          repos=$(gh api /installation/repositories --jq '[.repositories[].full_name] | join(",")')
+          echo "token can reach: $repos"
+          test "$repos" = "greeterhq/$TARGET" || { echo "::error::expected only greeterhq/$TARGET"; exit 1; }
+
+      - name: 4. Dispatch to the target succeeds
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+        run: |
+          gh api "repos/greeterhq/$TARGET/dispatches" -f event_type=app-token-smoke
+          echo "dispatch to $TARGET accepted"
+
+      - name: 5. Dispatch to another repo is refused
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+        run: |
+          if gh api "repos/greeterhq/$OTHER/dispatches" -f event_type=app-token-smoke 2>err.txt; then
+            echo "::error::token scoped to $TARGET could dispatch to $OTHER"; exit 1
+          fi
+          echo "refused as expected: $(cat err.txt)"
+
+      - name: 6. Minting for a repo without the app fails
+        id: not_installed
+        continue-on-error: true
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ vars.DISPATCH_APP_CLIENT_ID }}
+          private-key: ${{ secrets.DISPATCH_APP_PRIVATE_KEY }}
+          owner: greeterhq
+          repositories: ${{ env.NOT_INSTALLED }}
+
+      - name: 7. Confirm step 6 failed
+        env:
+          OUTCOME: ${{ steps.not_installed.outcome }}
+        run: |
+          test "$OUTCOME" = failure || { echo "::error::app can mint tokens for $NOT_INSTALLED"; exit 1; }
+          echo "refused as expected"
