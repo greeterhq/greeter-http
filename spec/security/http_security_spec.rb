@@ -150,6 +150,28 @@ RSpec.describe 'HTTP security properties' do
     end
   end
 
+  describe 'version disclosure is limited to the two version headers' do
+    it 'sends no other server/version/powered-by header on a 201, 422 or 404',
+       requirement: 'version-headers-disclose-nothing-beyond-the-two-versions',
+       scenario: 'no-other-version-disclosing-headers' do
+      unrouted = {
+        'version' => '2.0', 'rawPath' => '/nope', 'rawQueryString' => '', 'headers' => {},
+        'requestContext' => { 'http' => { 'method' => 'GET', 'path' => '/nope' } },
+        'body' => nil, 'isBase64Encoded' => false
+      }
+      responses = [handler.call(event: event_for(name: 'alice bonsu')),
+                   handler.call(event: event_for(name: '')),
+                   handler.call(event: unrouted)]
+
+      expect(responses.map { |r| r['statusCode'] }).to eq([201, 422, 404])
+      responses.each do |response|
+        disclosing = response['headers'].keys.map { |k| k.to_s.downcase }
+                                        .grep(/version|server|powered/)
+        expect(disclosing).to contain_exactly('x-greeter-version', 'x-greeter-core-version')
+      end
+    end
+  end
+
   describe 'request body is capped' do
     it 'rejects an oversized body with 413 instead of processing it' do
       # Far larger than MAX_BODY_BYTES; a valid-looking JSON object so the only

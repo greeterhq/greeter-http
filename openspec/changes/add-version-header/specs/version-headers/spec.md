@@ -82,6 +82,10 @@ variables.
 - **WHEN** the process environment defines variables such as `GREETER_VERSION`
 - **THEN** the response headers still carry the build's constant values
 
+#### Scenario: Inner application value is overwritten
+- **WHEN** the wrapped application itself returns different `X-Greeter-Version` or `X-Greeter-Core-Version` values
+- **THEN** the response headers carry the build's constant values
+
 ### Requirement: Version headers disclose nothing beyond the two versions
 The system SHALL refuse to start if either version value is not a plain
 dotted version (digits and dots, with an optional alphanumeric pre-release
