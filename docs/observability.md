@@ -120,6 +120,15 @@ The canary sends `x-greeter-synthetic: true`. The service then:
 - records its greeting counts under a `synthetic#` key prefix in DynamoDB, so
   canary greetings never inflate real per-guest counts.
 
+## Which version is deployed?
+
+Every response from the function carries `X-Greeter-Version` (the
+`greeter-http` release, e.g. `0.5.20`) and `X-Greeter-Core-Version` (the bundled
+`greeter-core`). `curl -i "$BASE/nope"` is enough to read them. The `@smoke`
+Cucumber scenario in `features/version_headers.feature` checks both on a
+deployed stage (send `X-Greeter-Synthetic: true` for any manual probing). Not
+covered: responses API Gateway generates itself without invoking the function.
+
 ## Kill switch: disable the counter without a redeploy
 
 `GREETER_COUNTER_ENABLED=false` (set on the Lambda function's environment, no

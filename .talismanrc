@@ -85,6 +85,8 @@ fileignoreconfig:
   checksum: 6b38d9bebf16ffc0ea22e5b17933e4811749d261039b02e0166e303e9dfe5b72  
 - filename: lib/greeter_http/adapters/lambda_handler.rb
   checksum: efa78eca5bbac2f24c4f0741105015e71f1c1f2a00349b6566a400161c880059
+- filename: lib/greeter_http/adapters/version_headers.rb
+  checksum: fd348eb0497efbc0390953f8e8b34c0989dcbd0b1bd2a2c3b8516829c5129218
 - filename: lib/greeter_http/application/greet_and_count.rb
   checksum: ce59f4ce5ab061f5493bad0e1b1524bd602594ec5aeb1ea93dc317e181823df3
 - filename: lib/greeter_http/application/greeted_guest.rb
@@ -98,7 +100,7 @@ fileignoreconfig:
 - filename: spec/adapters/version_headers_spec.rb
   checksum: 20b01bdc7cc2903c5733439c35071cdc2f287b9ccc76b2e11db15d3c398d4d0c  
 - filename: openspec/changes/add-version-header/tasks.md
-  checksum: b3236f373b36e45bbee440da18844d8f99a68c6159871e51b4dc4979e384de6f
+  checksum: a5782693d1c8d626bb2550e5d6c6981bbc288fdd3210f3ebc8bdf018fdcc9a6c
 - filename: openspec/changes/add-version-header/design.md
   checksum: 7ef92857c0233b03bf3d171de7786d347872508cce990fecc40f7185ac2cb648
 - filename: openspec/changes/add-version-header/specs/version-headers/spec.md

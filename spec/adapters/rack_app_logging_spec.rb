@@ -28,16 +28,23 @@ RSpec.describe 'GreeterHttp::Adapters::RackApp structured logging' do
     -> { times.shift || 1.025 }
   end
 
-  let(:app) do
-    GreeterHttp::App.build(greeting_counter: GreeterHttp::Adapters::InMemoryGreetingCounter.new)
+  # The use case, composed the same way App.build does. App.build returns the
+  # RackApp wrapped in middleware, so this spec builds the RackApp itself
+  # rather than reaching into App.build's result.
+  let(:use_case) do
+    GreeterHttp::Application::GreetAndCount.new(
+      greeting_service: Greeter::Core::Domain::GreetingService.new(
+        clock: GreeterHttp::Adapters::SystemClock.new
+      ),
+      greeting_counter: GreeterHttp::Adapters::InMemoryGreetingCounter.new
+    )
   end
 
-  # Rebuild the RackApp with our logger/monotonic injected, reusing the composed
-  # use case + presenter from App.build.
+  # The RackApp under test, with our logger/monotonic injected.
   let(:rack_app) do
     GreeterHttp::Adapters::RackApp.new(
-      use_case: app.instance_variable_get(:@use_case),
-      presenter: app.instance_variable_get(:@presenter),
+      use_case: use_case,
+      presenter: GreeterHttp::Adapters::JsonPresenter.new,
       logger: logger,
       monotonic: monotonic
     )
