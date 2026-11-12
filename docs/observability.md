@@ -124,10 +124,20 @@ The canary sends `x-greeter-synthetic: true`. The service then:
 
 Every response from the function carries `X-Greeter-Version` (the
 `greeter-http` release, e.g. `0.5.20`) and `X-Greeter-Core-Version` (the bundled
-`greeter-core`). `curl -i "$BASE/nope"` is enough to read them. The `@smoke`
-Cucumber scenario in `features/version_headers.feature` checks both on a
-deployed stage (send `X-Greeter-Synthetic: true` for any manual probing). Not
-covered: responses API Gateway generates itself without invoking the function.
+`greeter-core`). Read them with a real request, sending the synthetic marker so
+it never touches real counts:
+
+```
+curl -si "$BASE/greetings" -H 'Content-Type: application/json' \
+  -H "Idempotency-Key: $(uuidgen)" -H 'X-Greeter-Synthetic: true' \
+  -d '{"name":"version probe"}' | grep -i '^x-greeter-'
+```
+
+The `@smoke` Cucumber scenario in `features/version_headers.feature` does the
+same on a deployed stage. Only `POST /greetings` is routed in API Gateway, so a
+request for any other path or method (for example `GET /nope`) is answered by
+API Gateway itself without invoking the function, and carries no version
+headers.
 
 ## Kill switch: disable the counter without a redeploy
 
