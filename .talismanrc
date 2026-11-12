@@ -95,12 +95,12 @@ fileignoreconfig:
   checksum: b9119581f91b32b76e2e77b89f82c747baf828acc785ba61e6cdd98982dc9717
 - filename: lib/greeter_http/adapters/dynamodb_greeting_counter.rb
   checksum: b6cab31a5f53dcb0b04a36526d7bdcf8ac769ae4b0359f6d1ce5749ef5d83ea2  
-- filename: openspec/changes/add-greeting-counter-http/specs/greeting-counter/spec.md
-  checksum: 6dbc2a4e86568869ca380f4797b8cb708d262cc0c965c31e0cf98a228e2e66ae
-- filename: openspec/changes/add-greeting-counter-http/tasks.md
-  checksum: 1e4d0f6ee3f89457c55b3d818568bccd4bcf264943ab7a394b1bcb88c6551633
-- filename: openspec/changes/add-greeting-counter-http/design.md
-  checksum: 693bc9131385acae2bf3557ce3e7fe044a6a52e020f60671952796a3244f8751
+- filename: openspec/changes/add-version-header/tasks.md
+  checksum: b3236f373b36e45bbee440da18844d8f99a68c6159871e51b4dc4979e384de6f
+- filename: openspec/changes/add-version-header/design.md
+  checksum: 7ef92857c0233b03bf3d171de7786d347872508cce990fecc40f7185ac2cb648
+- filename: openspec/changes/add-version-header/specs/version-headers/spec.md
+  checksum: ee62620ba855a6376b9703c98c60f29720237c30b8ddfd36e26300ef0209451d
 - filename: openspec/config.yaml
   checksum: e3a1bcecd66c30e5fe2b977dca8604281de0ffc2b8133a1183a5aa6ba92790be
 - filename: openspec/specs/greeting-counter/spec.md
