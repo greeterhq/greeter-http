@@ -27,7 +27,7 @@ make them pass.
 - [x] 3.2 Run `bundle exec rspec` and `bundle exec cucumber` (smoke scenarios skipped without `GREETER_BASE_URL`). Verify: all green.
 - [x] 3.3 Run `bundle exec rubocop`, `sam validate --template infra/template.yaml`, and `openspec validate add-version-header --strict`. Verify: all pass with no offences.
 - [x] 3.4 (S1) Run `bundle exec brakeman` and `bundle exec bundle-audit check --update`. Verify: no new warnings, and no advisory against the greeter-core version being advertised.
-- [ ] 3.5 After deploy to a stage, run the `@smoke` scenario with `GREETER_BASE_URL` set. Verify: it passes and shows `0.5.20`.
+- [x] 3.5 After deploy to a stage, run the `@smoke` scenario with `GREETER_BASE_URL` set. Verify: it passes and shows `0.5.20`.
 
 ## Workflow follow-up
 
