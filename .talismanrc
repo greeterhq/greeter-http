@@ -109,6 +109,8 @@ fileignoreconfig:
   checksum: e3a1bcecd66c30e5fe2b977dca8604281de0ffc2b8133a1183a5aa6ba92790be
 - filename: openspec/specs/greeting-counter/spec.md
   checksum: 6f96e629eca6fc135e9dd6ba0f1bf247ca52b07dee832acb1ec17a36bffcd4b9
+- filename: openspec/specs/version-headers/spec.md
+  checksum: 89741717be026b623707137c25f68faf92a264e7cf73ff1ed981563e9f02a10c
 - filename: perf/http_bench.rb
   checksum: fb6fe61e814be384a6d52c6d22e2b99eb692053d80343d45b4608013785af93a
 - filename: perf/load.rb
