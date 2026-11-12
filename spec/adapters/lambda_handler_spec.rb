@@ -68,6 +68,29 @@ RSpec.describe 'GreeterHttp::Adapters::LambdaHandler' do
     end
   end
 
+  describe 'version headers pass through to API Gateway unchanged' do
+    it 'returns both headers for a 201, a 422 and an unrouted 404',
+       requirement: 'lambda-handler-preserves-version-headers',
+       scenario: 'handler-passes-headers-through' do
+      unrouted = {
+        'version' => '2.0', 'rawPath' => '/nope', 'rawQueryString' => '', 'headers' => {},
+        'requestContext' => { 'http' => { 'method' => 'GET', 'path' => '/nope' } },
+        'body' => nil, 'isBase64Encoded' => false
+      }
+      events = { 'happy_path' => [load_event('happy_path'), 201],
+                 'missing_name' => [load_event('missing_name'), 422],
+                 'unrouted' => [unrouted, 404] }
+
+      events.each do |label, (event, status)|
+        response = working_handler.call(event: event)
+
+        expect(response['statusCode']).to eq(status), "#{label}: unexpected status"
+        expect(response['headers']['x-greeter-version']).to eq(GreeterHttp::VERSION), label
+        expect(response['headers']['x-greeter-core-version']).to eq(Greeter::Core::VERSION), label
+      end
+    end
+  end
+
   describe 'when the counter raises a transient DynamoDB error' do
     let(:failing_counter) do
       instance_double(GreeterHttp::Adapters::InMemoryGreetingCounter).tap do |c|

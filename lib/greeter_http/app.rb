@@ -10,6 +10,7 @@ require 'greeter_http/adapters/disabled_greeting_counter'
 require 'greeter_http/adapters/system_clock'
 require 'greeter_http/adapters/json_presenter'
 require 'greeter_http/adapters/rack_app'
+require 'greeter_http/adapters/version_headers'
 require 'greeter_http/adapters/lambda_handler'
 
 module GreeterHttp
@@ -34,7 +35,10 @@ module GreeterHttp
         greeting_service: service,
         greeting_counter: counter
       )
-      Adapters::RackApp.new(use_case: use_case, presenter: Adapters::JsonPresenter.new)
+      rack_app = Adapters::RackApp.new(use_case: use_case, presenter: Adapters::JsonPresenter.new)
+      # Outermost wrapper: stamps the version headers on every response so no
+      # route or error path can forget them.
+      Adapters::VersionHeaders.new(app: rack_app)
     end
 
     # Build the Lambda handler wrapping the Rack app (production entry point).

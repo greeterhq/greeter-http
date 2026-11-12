@@ -34,6 +34,7 @@ require 'greeter_http/adapters/dynamodb_greeting_counter'
 require 'greeter_http/adapters/system_clock'
 require 'greeter_http/adapters/json_presenter'
 require 'greeter_http/adapters/rack_app'
+require 'greeter_http/adapters/version_headers'
 require 'greeter_http/adapters/lambda_handler'
 
 # Composition root.

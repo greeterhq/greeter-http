@@ -85,6 +85,8 @@ fileignoreconfig:
   checksum: 6b38d9bebf16ffc0ea22e5b17933e4811749d261039b02e0166e303e9dfe5b72  
 - filename: lib/greeter_http/adapters/lambda_handler.rb
   checksum: efa78eca5bbac2f24c4f0741105015e71f1c1f2a00349b6566a400161c880059
+- filename: lib/greeter_http/adapters/version_headers.rb
+  checksum: fd348eb0497efbc0390953f8e8b34c0989dcbd0b1bd2a2c3b8516829c5129218
 - filename: lib/greeter_http/application/greet_and_count.rb
   checksum: ce59f4ce5ab061f5493bad0e1b1524bd602594ec5aeb1ea93dc317e181823df3
 - filename: lib/greeter_http/application/greeted_guest.rb
@@ -94,13 +96,15 @@ fileignoreconfig:
 - filename: features/step_definitions/greeting_counter_steps.rb
   checksum: b9119581f91b32b76e2e77b89f82c747baf828acc785ba61e6cdd98982dc9717
 - filename: lib/greeter_http/adapters/dynamodb_greeting_counter.rb
-  checksum: b6cab31a5f53dcb0b04a36526d7bdcf8ac769ae4b0359f6d1ce5749ef5d83ea2  
-- filename: openspec/changes/add-greeting-counter-http/specs/greeting-counter/spec.md
-  checksum: 6dbc2a4e86568869ca380f4797b8cb708d262cc0c965c31e0cf98a228e2e66ae
-- filename: openspec/changes/add-greeting-counter-http/tasks.md
-  checksum: 1e4d0f6ee3f89457c55b3d818568bccd4bcf264943ab7a394b1bcb88c6551633
-- filename: openspec/changes/add-greeting-counter-http/design.md
-  checksum: 693bc9131385acae2bf3557ce3e7fe044a6a52e020f60671952796a3244f8751
+  checksum: b6cab31a5f53dcb0b04a36526d7bdcf8ac769ae4b0359f6d1ce5749ef5d83ea2
+- filename: spec/adapters/version_headers_spec.rb
+  checksum: 20b01bdc7cc2903c5733439c35071cdc2f287b9ccc76b2e11db15d3c398d4d0c  
+- filename: openspec/changes/add-version-header/tasks.md
+  checksum: a5782693d1c8d626bb2550e5d6c6981bbc288fdd3210f3ebc8bdf018fdcc9a6c
+- filename: openspec/changes/add-version-header/design.md
+  checksum: 7ef92857c0233b03bf3d171de7786d347872508cce990fecc40f7185ac2cb648
+- filename: openspec/changes/add-version-header/specs/version-headers/spec.md
+  checksum: ee62620ba855a6376b9703c98c60f29720237c30b8ddfd36e26300ef0209451d
 - filename: openspec/config.yaml
   checksum: e3a1bcecd66c30e5fe2b977dca8604281de0ffc2b8133a1183a5aa6ba92790be
 - filename: openspec/specs/greeting-counter/spec.md

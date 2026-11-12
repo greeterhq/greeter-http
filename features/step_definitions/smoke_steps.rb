@@ -20,6 +20,8 @@ def smoke_post(base_url, name, idempotency_key)
   request = Net::HTTP::Post.new(uri)
   request['Content-Type'] = 'application/json'
   request['Idempotency-Key'] = idempotency_key
+  # Monitoring/smoke traffic is tagged so it is isolated from real guest counts.
+  request['X-Greeter-Synthetic'] = 'true'
   request.body = JSON.generate({ name: name })
   http.request(request)
 end
