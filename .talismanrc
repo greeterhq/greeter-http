@@ -98,15 +98,11 @@ fileignoreconfig:
 - filename: lib/greeter_http/adapters/dynamodb_greeting_counter.rb
   checksum: b6cab31a5f53dcb0b04a36526d7bdcf8ac769ae4b0359f6d1ce5749ef5d83ea2
 - filename: spec/adapters/version_headers_spec.rb
-  checksum: 20b01bdc7cc2903c5733439c35071cdc2f287b9ccc76b2e11db15d3c398d4d0c  
-- filename: openspec/changes/adopt-acceptance-gate/proposal.md
-  checksum: aa6982d9d99b802081f5e3823a130e3ce9c3457e5d7a3e39cef9bc4f15ca4384
+  checksum: 20b01bdc7cc2903c5733439c35071cdc2f287b9ccc76b2e11db15d3c398d4d0c
+- filename: spec/workflows/cd_workflow_spec.rb
+  checksum: 5dd7ed384420cb4ec6918793852b4ecd8e8daedf858c7b751eff4e05e369f0d3  
 - filename: openspec/changes/adopt-acceptance-gate/tasks.md
-  checksum: 15d0973bca7995607ce931da42f4e5a110c45f4a76f1a9bf312a3b09c8211e06
-- filename: openspec/changes/adopt-acceptance-gate/specs/acceptance-gated-release/spec.md
-  checksum: f50b57789bd1a2f5943835c79b36ad460bb928cfc2a42551a5e85677f5aa7171
-- filename: openspec/changes/adopt-acceptance-gate/design.md
-  checksum: bf7090aadfabdc0c714d2dd0a8c460a655cd654b1dc9d6780751334b4b04fded
+  checksum: d52fe5e0bae170fa20af6d776710bd6bbc534b1c62d792df65491f2ef656e9f9
 - filename: openspec/config.yaml
   checksum: e3a1bcecd66c30e5fe2b977dca8604281de0ffc2b8133a1183a5aa6ba92790be
 - filename: openspec/specs/greeting-counter/spec.md
@@ -137,6 +133,18 @@ fileignoreconfig:
   checksum: df8f3b2815e00c628efccec32931e71212f20ba104a775883147336193cdab75
 - filename: spec/fixtures/events/oversized_name.json
   checksum: cf2845372cbec04ffd159caaabaa8ce3ac38543b33eab748fb44d96c5fa18c4d
+- filename: spec/fixtures/ledger/wrong_environment.json
+  checksum: 93aaaede443639e0cc38ed024100fda5ad61ca854eed687b4087632834220907
+- filename: spec/fixtures/ledger/no_http.json
+  checksum: 1dfdc6892b4d82406a7fde9df92f48cb66336d4b8d89791f4a459b00bb7831a3
+- filename: spec/fixtures/ledger/bad_version.json
+  checksum: d11d56eabe90ad93bd6e91c6bc2da22ebd8a6e72aad23ad7d8d9d99886be7688
+- filename: spec/fixtures/ledger/hostile_version.json
+  checksum: 3438959c6c2b863a774907263a1eede44c6979f28c073d8be4afc8260b35d42a
+- filename: spec/fixtures/ledger/valid.json
+  checksum: 7d702699e7661845d4cb3bb0758be9b71e6b8ec8b5b3cac12b02b51fa3663f0d
+- filename: spec/fixtures/ledger/wrong_schema.json
+  checksum: e0663c221a35643b9371d9e3beef88fb60ab8b9c45621e0250dce2e1cd46420c
 - filename: spec/fixtures/events/malformed_json.json
   checksum: e8eb91947ab5ca37fc440dd99b38547f711bd1ba76430f1c46524052de4ecd58
 - filename: spec/architecture_spec.rb

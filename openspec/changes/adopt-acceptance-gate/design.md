@@ -92,7 +92,11 @@ See proposal.md for motivation and non-goals.
 5. **`bin/last-good-release`.** A Ruby script defining a small
    `LastGoodRelease` class: `new(fetcher:, ledger_url: LEDGER_URL)` and
    `#call(failed_tag)` returning the version or raising
-   `LastGoodRelease::Error` with a reason. The URL is a constant
+   `LastGoodRelease::Error` with a reason, and an entry point
+   `LastGoodRelease.run(argv, fetcher:, stdout:, stderr:)` returning the exit
+   status (0, or 1 with one `last-good-release: <reason>` line on stderr and
+   nothing on stdout). The main guard just calls `run` with the real fetcher
+   and `exit`s with its result; the specs call `run` with an injected fetcher. The URL is a constant
    (`https://raw.githubusercontent.com/greeterhq/greeter-acceptance/ledger-stage/deployed.json`);
    the CLI has no option to change it. The default fetcher uses `Net::HTTP`
    over https with open and read timeouts and a body size cap. Main guard
@@ -108,7 +112,10 @@ See proposal.md for motivation and non-goals.
    cheap, guards against reading the wrong ledger); say if you want it removed.
 
 6. **`bin/check-acceptance-ref`.** Same shape: a `CheckAcceptanceRef` class
-   given parsed YAML (or a path), `exit 1` with a message naming both values on
+   with `CheckAcceptanceRef.run(argv, stdout:, stderr:)` returning the exit
+   status (argv is an optional workflow path, default
+   `.github/workflows/cd.yml` resolved from the script's location, not the
+   working directory), `exit 1` with a message naming both values on
    a mismatch or non-`vX.Y.Z`. Default path `.github/workflows/cd.yml`, job
    `gate`. It also fails when the gate job, its `uses:` ref or `acceptance_ref`
    is missing, so deleting the gate cannot pass lint. It also requires the

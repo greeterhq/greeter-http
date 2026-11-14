@@ -1,0 +1,9 @@
+name: CD
+"on":
+  repository_dispatch:
+    types: [deploy-release]
+jobs:
+  deploy-dev:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo deploy
