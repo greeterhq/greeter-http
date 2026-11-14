@@ -99,12 +99,14 @@ fileignoreconfig:
   checksum: b6cab31a5f53dcb0b04a36526d7bdcf8ac769ae4b0359f6d1ce5749ef5d83ea2
 - filename: spec/adapters/version_headers_spec.rb
   checksum: 20b01bdc7cc2903c5733439c35071cdc2f287b9ccc76b2e11db15d3c398d4d0c  
-- filename: openspec/changes/add-version-header/tasks.md
-  checksum: a5782693d1c8d626bb2550e5d6c6981bbc288fdd3210f3ebc8bdf018fdcc9a6c
-- filename: openspec/changes/add-version-header/design.md
-  checksum: 7ef92857c0233b03bf3d171de7786d347872508cce990fecc40f7185ac2cb648
-- filename: openspec/changes/add-version-header/specs/version-headers/spec.md
-  checksum: ee62620ba855a6376b9703c98c60f29720237c30b8ddfd36e26300ef0209451d
+- filename: openspec/changes/adopt-acceptance-gate/proposal.md
+  checksum: aa6982d9d99b802081f5e3823a130e3ce9c3457e5d7a3e39cef9bc4f15ca4384
+- filename: openspec/changes/adopt-acceptance-gate/tasks.md
+  checksum: 15d0973bca7995607ce931da42f4e5a110c45f4a76f1a9bf312a3b09c8211e06
+- filename: openspec/changes/adopt-acceptance-gate/specs/acceptance-gated-release/spec.md
+  checksum: f50b57789bd1a2f5943835c79b36ad460bb928cfc2a42551a5e85677f5aa7171
+- filename: openspec/changes/adopt-acceptance-gate/design.md
+  checksum: bf7090aadfabdc0c714d2dd0a8c460a655cd654b1dc9d6780751334b4b04fded
 - filename: openspec/config.yaml
   checksum: e3a1bcecd66c30e5fe2b977dca8604281de0ffc2b8133a1183a5aa6ba92790be
 - filename: openspec/specs/greeting-counter/spec.md
