@@ -1,0 +1,78 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# check-acceptance-ref - lint gate for the acceptance suite pin in cd.yml.
+#
+#   bin/check-acceptance-ref [workflow.yml]    default: .github/workflows/cd.yml
+#
+# A job-level `uses:` ref must be a literal, so cd.yml names the suite version
+# twice: in the gate job's `uses: ...gate.yml@<ref>` and in its `acceptance_ref`
+# input. This fails (exit 1) when:
+#   * there is no gate job, or its `uses:` is not exactly
+#     greeterhq/greeter-acceptance/.github/workflows/gate.yml
+#   * the `uses:` ref and `acceptance_ref` differ, or either is not vX.Y.Z.
+#
+# Pure stdlib. The logic is in CheckAcceptanceRef so specs can load this file.
+
+require 'yaml'
+
+class CheckAcceptanceRef
+  SOURCE = 'greeterhq/greeter-acceptance/.github/workflows/gate.yml'
+  VERSION_PATTERN = /\Av\d+\.\d+\.\d+\z/
+  DEFAULT_PATH = File.expand_path('../.github/workflows/cd.yml', __dir__)
+
+  # @return [Integer] the process exit status
+  def self.run(argv, stdout: $stdout, stderr: $stderr)
+    path = argv.first || DEFAULT_PATH
+    problems = new(path).problems
+    if problems.empty?
+      stdout.puts('check-acceptance-ref: ok')
+      return 0
+    end
+
+    stderr.puts('check-acceptance-ref: FAIL')
+    problems.each { |problem| stderr.puts("  - #{problem}") }
+    1
+  end
+
+  def initialize(path)
+    @path = path
+  end
+
+  # @return [Array<String>] what is wrong; empty when the pin is consistent
+  def problems
+    gate = load_gate
+    return [gate] if gate.is_a?(String)
+
+    source, uses_ref = gate['uses'].to_s.split('@', 2)
+    input_ref = gate.dig('with', 'acceptance_ref')
+    found = []
+    found << "gate source #{source.inspect} is not #{SOURCE}" unless source == SOURCE
+    found.concat(version_problems(uses_ref, input_ref))
+    found
+  end
+
+  private
+
+  # The gate job, or a String describing why it cannot be read.
+  def load_gate
+    document = YAML.safe_load_file(@path, aliases: true)
+    gate = document.is_a?(Hash) ? document.dig('jobs', 'gate') : nil
+    gate.is_a?(Hash) ? gate : "#{@path} has no gate job"
+  rescue SystemCallError, Psych::Exception => e
+    "cannot read #{@path} (#{e.class})"
+  end
+
+  def version_problems(uses_ref, input_ref)
+    found = []
+    { 'uses ref' => uses_ref, 'acceptance_ref' => input_ref }.each do |label, value|
+      unless value.is_a?(String) && value.match?(VERSION_PATTERN)
+        found << "gate #{label} #{value.inspect} is not vX.Y.Z"
+      end
+    end
+    found << "gate uses ref #{uses_ref.inspect} but acceptance_ref is #{input_ref.inspect}" if uses_ref != input_ref
+    found
+  end
+end
+
+exit CheckAcceptanceRef.run(ARGV) if $PROGRAM_NAME == __FILE__

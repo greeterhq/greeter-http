@@ -94,6 +94,9 @@ jobs:
             --format github \
             --debug
 
+      - name: Check the acceptance suite pin
+        run: bin/check-acceptance-ref
+
 # ═════════════════════════════════════════════════════════════════════════════
 # SECURITY
 #

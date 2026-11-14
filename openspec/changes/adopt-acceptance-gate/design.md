@@ -192,3 +192,12 @@ See proposal.md for motivation and non-goals.
 - `.talismanrc` is edited (checksums only) although it was not in your list.
 - Workflow-structure specs go beyond the two script specs you asked for.
 - The ledger `environment == "stage"` check goes beyond the brief.
+- The "Download + verify" steps of `deploy-dev` and `deploy-prod` had a static
+  error message mentioning `client_payload`; it now says "no release tag from
+  the resolve job". Nothing else in those steps changed except the tag source.
+  (The structure spec asserts `deploy-dev` no longer mentions the payload.)
+- `actionlint` 1.7.12 has stale metadata for `actions/create-github-app-token@v3`:
+  it demands `app-id` and rejects `client-id`, but the action's `action.yml` at
+  `v3` defines `client-id` and marks `app-id` deprecated. Those two reports (and
+  a pre-existing shellcheck SC2034 in `ci.yml`'s functional job) are false
+  positives or unrelated; they are ignored with `-ignore` when verifying.

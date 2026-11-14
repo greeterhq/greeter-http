@@ -176,6 +176,43 @@ When a deploy goes bad, in rough order of preference:
    redeploy the previous artifact as in (2) — CloudFormation has no "undo last
    change set" button.
 
+### Automatic restore of dev (`restore-dev`)
+
+Every release is proven against the shared acceptance suite before prod. The CD
+run goes `resolve` -> `deploy-dev` -> `gate`; the gate runs the suite from
+`greeterhq/greeter-acceptance` against `stage`, which is the dev stack (its URL
+comes from the suite's own configuration, not from this repository). If the
+gate **fails**:
+
+- `deploy-prod` never starts, so no prod approval is requested, and nothing is
+  announced to the acceptance ledgers.
+- `restore-dev` runs. It reads the http version the stage ledger last recorded
+  (`bin/last-good-release`), downloads that release's tarball and `.sha256`,
+  verifies the checksum, deploys it to the dev stack with the same flags as
+  `deploy-dev`, and runs `bin/smoke`.
+- The run **always ends red**, even when the restore worked: the last step is
+  "Fail the run (dev was restored)" and names the failed and restored versions.
+  Prod is never touched.
+
+`restore-dev` only runs when `deploy-dev` succeeded and the gate result is
+`failure`. If the gate is cancelled or skipped, dev stays on the candidate.
+
+When the restore refuses, nothing is deployed (all of these checks run before
+AWS credentials are configured) and dev stays on the failed release. The step
+"Read the last good release from the stage ledger" prints one line:
+
+| Message (after `last-good-release:`) | Meaning | What to do |
+| --- | --- | --- |
+| `ledger unreadable (...)` | The ledger could not be fetched, was too large, or is not a JSON object. | Check `https://raw.githubusercontent.com/greeterhq/greeter-acceptance/ledger-stage/deployed.json`, then restore by hand (rollback option 2). |
+| `ledger schema "..." is not greeterhq.deployed.v1` | The ledger format changed. | Update `bin/last-good-release` for the new schema, or restore by hand. |
+| `ledger environment "..." is not stage` | Wrong ledger branch. | Check the ledger URL constant in `bin/last-good-release`. |
+| `ledger has no recorded http version` | The acceptance repository has not recorded an http release for stage yet. | Restore by hand. |
+| `recorded http version "..." is invalid (expected vX.Y.Z)` | The ledger holds something that is not a release version. | Fix the ledger; restore by hand. |
+| `... is the failed version; restoring would redeploy the failed version` | The ledger already records the failed release (for example a re-run). | Restore by hand to the release before it. |
+
+A checksum mismatch (`shasum` fails) or a failed smoke after the restore also
+fails the job; in both cases treat dev as unhealthy and use rollback option 2.
+
 ### Post-rollback checks
 
 - `error_pct` (query above) returns to baseline.
