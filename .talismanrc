@@ -102,7 +102,7 @@ fileignoreconfig:
 - filename: spec/workflows/cd_workflow_spec.rb
   checksum: 5dd7ed384420cb4ec6918793852b4ecd8e8daedf858c7b751eff4e05e369f0d3  
 - filename: openspec/changes/adopt-acceptance-gate/design.md
-  checksum: 7f97db9341f40981863f218c1fbb64a6bd4bc96d56ea785916cd5a5f9f31c660
+  checksum: 59320b5e611a5a838e78613c0436b4bddbb0a151d83b5fd7b018ec3db3be820d
 - filename: openspec/changes/adopt-acceptance-gate/tasks.md
   checksum: 3eaf093599f2b5fd2364f2d54e4a26d1bb01b6681634be796a5eee4a959d3ab4
 - filename: openspec/config.yaml
