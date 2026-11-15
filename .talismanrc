@@ -101,12 +101,11 @@ fileignoreconfig:
   checksum: 20b01bdc7cc2903c5733439c35071cdc2f287b9ccc76b2e11db15d3c398d4d0c
 - filename: spec/workflows/cd_workflow_spec.rb
   checksum: 5dd7ed384420cb4ec6918793852b4ecd8e8daedf858c7b751eff4e05e369f0d3  
-- filename: openspec/changes/adopt-acceptance-gate/design.md
-  checksum: 59320b5e611a5a838e78613c0436b4bddbb0a151d83b5fd7b018ec3db3be820d
-- filename: openspec/changes/adopt-acceptance-gate/tasks.md
   checksum: 3eaf093599f2b5fd2364f2d54e4a26d1bb01b6681634be796a5eee4a959d3ab4
 - filename: openspec/config.yaml
   checksum: e3a1bcecd66c30e5fe2b977dca8604281de0ffc2b8133a1183a5aa6ba92790be
+- filename: openspec/specs/acceptance-gated-release/spec.md
+  checksum: 99556ad417bc99782a3f622d2b5194aa1df113e31f373da9a10db5645e507af7  
 - filename: openspec/specs/greeting-counter/spec.md
   checksum: 6f96e629eca6fc135e9dd6ba0f1bf247ca52b07dee832acb1ec17a36bffcd4b9
 - filename: openspec/specs/version-headers/spec.md
