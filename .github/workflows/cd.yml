@@ -8,10 +8,14 @@
 #
 # Flow (build-once, deploy-the-same-bytes — CD never rebuilds; it deploys the
 # exact artifact CI published):
-#     download+verify release artifact (tag)
+#     resolve (validate the tag, resolve its commit)
+#       -> download+verify release artifact (tag)
 #       -> deploy DEV -> smoke DEV
-#       -> manual approval (GitHub "prod" environment)
-#       -> deploy PROD -> smoke PROD
+#       -> acceptance GATE (shared suite, run against "stage" = dev)
+#            pass: announce stage -> manual approval (GitHub "prod" environment)
+#                  -> deploy PROD -> smoke PROD -> announce prod
+#            fail: restore DEV to the last version the stage ledger recorded
+#                  (the run stays red); prod is never deployed or approved.
 # On a smoke failure at either stage, infra/rollback.sh runs and the job fails.
 #
 # The greeter-core lockfile bump lives in ci.yml (bump-core), not here.
@@ -41,6 +45,9 @@ concurrency:
   group: cd-deploy
   cancel-in-progress: false    # never interrupt an in-flight deploy
 
+# No permissions by default; every job declares what it needs.
+permissions: {}
+
 env:
   # Keep in sync with ci.yml. "3.3" tracks the latest 3.3.x because newer
   # runner images only build the latest patch of each Ruby series.
@@ -49,11 +56,47 @@ env:
 
 jobs:
   # ═══════════════════════════════════════════════════════════════════════════
+  # resolve. The only job that reads the dispatch payload. Everything else uses
+  # its validated outputs (tag, sha).
+  # ═══════════════════════════════════════════════════════════════════════════
+  resolve:
+    name: Resolve release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      tag: ${{ steps.resolve.outputs.tag }}
+      sha: ${{ steps.resolve.outputs.sha }}
+    steps:
+      # The dispatched value is untrusted: it is read from env, checked, and
+      # only then used. A bad value fails with a fixed message that never
+      # includes it, so it cannot inject workflow commands into the log.
+      - name: Validate the release and resolve its commit
+        id: resolve
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          TAG: ${{ github.event.client_payload.tag }}
+        run: |
+          set -euo pipefail
+          if ! [[ "${TAG}" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::the dispatched release is not named vX.Y.Z"
+            exit 1
+          fi
+          sha="$(gh api "repos/${REPO}/commits/${TAG}" --jq .sha)"
+          if ! [[ "${sha}" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "::error::could not resolve the release to a commit"
+            exit 1
+          fi
+          printf 'tag=%s\nsha=%s\n' "${TAG}" "${sha}" >> "$GITHUB_OUTPUT"
+
+  # ═══════════════════════════════════════════════════════════════════════════
   # deploy DEV + smoke. Downloads and verifies the exact release artifact CI
   # published for this tag, then deploys it. Rollback on smoke failure.
   # ═══════════════════════════════════════════════════════════════════════════
   deploy-dev:
     name: Deploy dev
+    needs: resolve
     runs-on: ubuntu-latest
     environment: dev
     permissions:
@@ -77,9 +120,9 @@ jobs:
       - name: Download + verify the release artifact
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAG: ${{ github.event.client_payload.tag }}
+          TAG: ${{ needs.resolve.outputs.tag }}
         run: |
-          test -n "${TAG}" || { echo "::error::no tag in client_payload"; exit 1; }
+          test -n "${TAG}" || { echo "::error::no release tag from the resolve job"; exit 1; }
           gh release download "${TAG}" --repo "${GITHUB_REPOSITORY}" \
             --pattern "greeter-http-${TAG}.tar.gz" \
             --pattern "greeter-http-${TAG}.tar.gz.sha256"
@@ -101,7 +144,7 @@ jobs:
 
       - name: Deploy to dev
         env:
-          TAG: ${{ github.event.client_payload.tag }}
+          TAG: ${{ needs.resolve.outputs.tag }}
         run: |
           # The artifact unpacks to greeter-http-<tag>/ with a built
           # .aws-sam/build/ inside; deploy from there so SAM uses the packaged
@@ -137,13 +180,124 @@ jobs:
         run: infra/rollback.sh '${{ vars.DEV_STACK_NAME }}' '${{ vars.AWS_REGION }}'
 
   # ═══════════════════════════════════════════════════════════════════════════
+  # acceptance GATE. Runs the shared acceptance suite against "stage" (which is
+  # dev). The target URL comes from the suite's committed configuration, never
+  # from here, so none is passed. The version is written twice because a job's
+  # `uses:` ref must be a literal; bin/check-acceptance-ref (run by the CI lint
+  # job) keeps the two equal. No secrets, and only contents: read.
+  # ═══════════════════════════════════════════════════════════════════════════
+  gate:
+    name: Acceptance gate
+    needs: [resolve, deploy-dev]
+    permissions:
+      contents: read
+    uses: greeterhq/greeter-acceptance/.github/workflows/gate.yml@v0.2.2
+    with:
+      acceptance_ref: v0.2.2
+      channel: http
+      candidate_version: ${{ needs.resolve.outputs.tag }}
+      candidate_sha: ${{ needs.resolve.outputs.sha }}
+      environment: stage
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # restore DEV. Only when dev deployed and the gate failed. Redeploys the http
+  # version the stage ledger last recorded, then ALWAYS fails the run.
+  # Everything that can refuse (ledger unreadable or malformed, version equal
+  # to the failed one) happens before AWS credentials exist, so a refusal
+  # deploys nothing.
+  # ═══════════════════════════════════════════════════════════════════════════
+  restore-dev:
+    name: Restore dev
+    needs: [resolve, deploy-dev, gate]
+    if: always() && needs.deploy-dev.result == 'success' && needs.gate.result == 'failure'
+    runs-on: ubuntu-latest
+    environment: dev
+    permissions:
+      id-token: write          # OIDC -> AWS
+      contents: read           # download the release asset
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ env.RUBY_VERSION }}
+          bundler: ${{ env.BUNDLER_VERSION }}
+          bundler-cache: true
+
+      - uses: aws-actions/setup-sam@v2
+        with:
+          use-installer: true
+
+      - name: Read the last good release from the stage ledger
+        id: ledger
+        env:
+          FAILED_TAG: ${{ needs.resolve.outputs.tag }}
+        run: |
+          set -euo pipefail
+          good="$(bin/last-good-release "${FAILED_TAG}")"
+          printf 'good_tag=%s\n' "${good}" >> "$GITHUB_OUTPUT"
+
+      - name: Download + verify the last good release artifact
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GOOD_TAG: ${{ steps.ledger.outputs.good_tag }}
+        run: |
+          gh release download "${GOOD_TAG}" --repo "${GITHUB_REPOSITORY}" \
+            --pattern "greeter-http-${GOOD_TAG}.tar.gz" \
+            --pattern "greeter-http-${GOOD_TAG}.tar.gz.sha256"
+          shasum -a 256 -c "greeter-http-${GOOD_TAG}.tar.gz.sha256"
+          tar -xzf "greeter-http-${GOOD_TAG}.tar.gz"
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Redeploy the last good release to dev
+        env:
+          GOOD_TAG: ${{ steps.ledger.outputs.good_tag }}
+        run: |
+          cd "greeter-http-${GOOD_TAG}"
+          sam deploy \
+            --stack-name '${{ vars.DEV_STACK_NAME }}' \
+            --region '${{ vars.AWS_REGION }}' \
+            --no-confirm-changeset --no-fail-on-empty-changeset \
+            --capabilities CAPABILITY_IAM \
+            --resolve-s3
+
+      - name: Smoke dev (bin/smoke)
+        run: |
+          url="$(aws cloudformation describe-stacks \
+            --stack-name '${{ vars.DEV_STACK_NAME }}' \
+            --region '${{ vars.AWS_REGION }}' \
+            --query "Stacks[0].Outputs[?OutputKey=='ApiBaseUrl'].OutputValue" \
+            --output text)"
+          test -n "${url}" && test "${url}" != "None" \
+            || { echo "::error::could not resolve ApiBaseUrl from stack ${{ vars.DEV_STACK_NAME }}"; exit 1; }
+          echo "resolved GREETER_BASE_URL=${url}"
+          export GREETER_BASE_URL="${url}"
+          bin/smoke
+
+      # The restore worked, but the release failed its gate, so the run is red.
+      - name: Fail the run (dev was restored)
+        env:
+          FAILED_TAG: ${{ needs.resolve.outputs.tag }}
+          GOOD_TAG: ${{ steps.ledger.outputs.good_tag }}
+        run: |
+          echo "::error::${FAILED_TAG} failed the acceptance gate; dev was restored to ${GOOD_TAG}"
+          exit 1
+
+  # ═══════════════════════════════════════════════════════════════════════════
   # deploy PROD + smoke. The "prod" environment's required-reviewer rule is the
   # MANUAL APPROVAL gate: this job stays queued until a reviewer approves.
+  # Needs the acceptance gate, so a failed (or cancelled, or skipped) gate means
+  # this job never starts and approval is never requested.
   # Deploys the SAME artifact verified for dev. Rollback on smoke failure.
   # ═══════════════════════════════════════════════════════════════════════════
   deploy-prod:
     name: Deploy prod
-    needs: deploy-dev
+    needs: [resolve, gate]
     runs-on: ubuntu-latest
     environment: prod          # add required reviewers here => manual approval
     permissions:
@@ -165,9 +319,9 @@ jobs:
       - name: Download + verify the release artifact
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAG: ${{ github.event.client_payload.tag }}
+          TAG: ${{ needs.resolve.outputs.tag }}
         run: |
-          test -n "${TAG}" || { echo "::error::no tag in client_payload"; exit 1; }
+          test -n "${TAG}" || { echo "::error::no release tag from the resolve job"; exit 1; }
           gh release download "${TAG}" --repo "${GITHUB_REPOSITORY}" \
             --pattern "greeter-http-${TAG}.tar.gz" \
             --pattern "greeter-http-${TAG}.tar.gz.sha256"
@@ -182,7 +336,7 @@ jobs:
 
       - name: Deploy to prod
         env:
-          TAG: ${{ github.event.client_payload.tag }}
+          TAG: ${{ needs.resolve.outputs.tag }}
         run: |
           cd "greeter-http-${TAG}"
           sam deploy \
@@ -210,3 +364,76 @@ jobs:
       - name: Rollback prod on smoke failure
         if: failure() && steps.smoke.outcome == 'failure'
         run: infra/rollback.sh '${{ vars.PROD_STACK_NAME }}' '${{ vars.AWS_REGION }}'
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # announce STAGE. After the gate passes, tell the acceptance repository this
+  # release is deployed to stage so its ledger records it. The job has no
+  # GITHUB_TOKEN permissions at all; its only credential is a GitHub App token
+  # minted here, scoped to the one repository it dispatches to, with only the
+  # permission a repository dispatch needs. Values reach the command through
+  # env and -f (string) fields only: -F would read a file for a value that
+  # starts with @.
+  # ═══════════════════════════════════════════════════════════════════════════
+  announce-stage:
+    name: Announce stage
+    needs: [resolve, gate]
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - name: Mint a token for the acceptance repository
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ vars.DISPATCH_APP_CLIENT_ID }}
+          private-key: ${{ secrets.DISPATCH_APP_PRIVATE_KEY }}
+          owner: greeterhq
+          repositories: greeter-acceptance
+          permission-contents: write
+
+      - name: Announce the release (stage)
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          VERSION: ${{ needs.resolve.outputs.tag }}
+          SHA: ${{ needs.resolve.outputs.sha }}
+          ENVIRONMENT: stage
+        run: |
+          gh api repos/greeterhq/greeter-acceptance/dispatches \
+            -f event_type=channel-released \
+            -f 'client_payload[channel]=http' \
+            -f "client_payload[version]=${VERSION}" \
+            -f "client_payload[sha]=${SHA}" \
+            -f "client_payload[environment]=${ENVIRONMENT}"
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # announce PROD. Same as announce-stage, after deploy-prod (which includes its
+  # smoke steps) succeeded.
+  # ═══════════════════════════════════════════════════════════════════════════
+  announce-prod:
+    name: Announce prod
+    needs: [resolve, deploy-prod]
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - name: Mint a token for the acceptance repository
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ vars.DISPATCH_APP_CLIENT_ID }}
+          private-key: ${{ secrets.DISPATCH_APP_PRIVATE_KEY }}
+          owner: greeterhq
+          repositories: greeter-acceptance
+          permission-contents: write
+
+      - name: Announce the release (prod)
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+          VERSION: ${{ needs.resolve.outputs.tag }}
+          SHA: ${{ needs.resolve.outputs.sha }}
+          ENVIRONMENT: prod
+        run: |
+          gh api repos/greeterhq/greeter-acceptance/dispatches \
+            -f event_type=channel-released \
+            -f 'client_payload[channel]=http' \
+            -f "client_payload[version]=${VERSION}" \
+            -f "client_payload[sha]=${SHA}" \
+            -f "client_payload[environment]=${ENVIRONMENT}"

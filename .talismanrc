@@ -1,8 +1,8 @@
 fileignoreconfig:
 - filename: .github/workflows/cd.yml
-  checksum: 2b11aed2d21a8a86dfe87bf707b91aa518444f3f7d3f1fd8e396b832372e07ab
+  checksum: 8ec0e31e68e046b62e25f59dbc16ef4e0241c732106c09b4cc7a1530b5fdb386
 - filename: .github/workflows/ci.yml
-  checksum: eac5aa94d69f890302fb06ee8478798bb73be02564ba23daa4b4891d854b8245
+  checksum: b23e0c3c24231db8a1b5ad2b7558c854e1fbededbbe3295a6c614471fcdd945a
 - filename: spec/security/http_security_spec.rb
   checksum: 77ff48c901c3d0f87fdfaed914f441dad09b85427fe837ff9e2e3bd0fbbbbab2
 - filename: .kiro/prompts/opsx-continue.prompt.md
@@ -98,13 +98,13 @@ fileignoreconfig:
 - filename: lib/greeter_http/adapters/dynamodb_greeting_counter.rb
   checksum: b6cab31a5f53dcb0b04a36526d7bdcf8ac769ae4b0359f6d1ce5749ef5d83ea2
 - filename: spec/adapters/version_headers_spec.rb
-  checksum: 20b01bdc7cc2903c5733439c35071cdc2f287b9ccc76b2e11db15d3c398d4d0c  
-- filename: openspec/changes/add-version-header/tasks.md
-  checksum: a5782693d1c8d626bb2550e5d6c6981bbc288fdd3210f3ebc8bdf018fdcc9a6c
-- filename: openspec/changes/add-version-header/design.md
-  checksum: 7ef92857c0233b03bf3d171de7786d347872508cce990fecc40f7185ac2cb648
-- filename: openspec/changes/add-version-header/specs/version-headers/spec.md
-  checksum: ee62620ba855a6376b9703c98c60f29720237c30b8ddfd36e26300ef0209451d
+  checksum: 20b01bdc7cc2903c5733439c35071cdc2f287b9ccc76b2e11db15d3c398d4d0c
+- filename: spec/workflows/cd_workflow_spec.rb
+  checksum: 5dd7ed384420cb4ec6918793852b4ecd8e8daedf858c7b751eff4e05e369f0d3  
+- filename: openspec/changes/adopt-acceptance-gate/design.md
+  checksum: 7f97db9341f40981863f218c1fbb64a6bd4bc96d56ea785916cd5a5f9f31c660
+- filename: openspec/changes/adopt-acceptance-gate/tasks.md
+  checksum: 3eaf093599f2b5fd2364f2d54e4a26d1bb01b6681634be796a5eee4a959d3ab4
 - filename: openspec/config.yaml
   checksum: e3a1bcecd66c30e5fe2b977dca8604281de0ffc2b8133a1183a5aa6ba92790be
 - filename: openspec/specs/greeting-counter/spec.md
@@ -135,6 +135,18 @@ fileignoreconfig:
   checksum: df8f3b2815e00c628efccec32931e71212f20ba104a775883147336193cdab75
 - filename: spec/fixtures/events/oversized_name.json
   checksum: cf2845372cbec04ffd159caaabaa8ce3ac38543b33eab748fb44d96c5fa18c4d
+- filename: spec/fixtures/ledger/wrong_environment.json
+  checksum: 93aaaede443639e0cc38ed024100fda5ad61ca854eed687b4087632834220907
+- filename: spec/fixtures/ledger/no_http.json
+  checksum: 1dfdc6892b4d82406a7fde9df92f48cb66336d4b8d89791f4a459b00bb7831a3
+- filename: spec/fixtures/ledger/bad_version.json
+  checksum: d11d56eabe90ad93bd6e91c6bc2da22ebd8a6e72aad23ad7d8d9d99886be7688
+- filename: spec/fixtures/ledger/hostile_version.json
+  checksum: 3438959c6c2b863a774907263a1eede44c6979f28c073d8be4afc8260b35d42a
+- filename: spec/fixtures/ledger/valid.json
+  checksum: 7d702699e7661845d4cb3bb0758be9b71e6b8ec8b5b3cac12b02b51fa3663f0d
+- filename: spec/fixtures/ledger/wrong_schema.json
+  checksum: e0663c221a35643b9371d9e3beef88fb60ab8b9c45621e0250dce2e1cd46420c
 - filename: spec/fixtures/events/malformed_json.json
   checksum: e8eb91947ab5ca37fc440dd99b38547f711bd1ba76430f1c46524052de4ecd58
 - filename: spec/architecture_spec.rb

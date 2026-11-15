@@ -1,0 +1,149 @@
+#!/usr/bin/env ruby
+# frozen_string_literal: true
+
+# last-good-release - prints the http version the acceptance stage ledger last
+# recorded, so restore-dev knows what to redeploy to dev after a failed gate.
+#
+#   bin/last-good-release <failed-tag>     e.g. bin/last-good-release v0.5.21
+#
+# On success: prints only the version (e.g. v0.5.20) on stdout, exits 0.
+# On any problem: prints one line "last-good-release: <reason>" on stderr,
+# nothing on stdout, exits 1. It refuses when the ledger is unreadable, has the
+# wrong schema or environment, has no http entry, records a version that is not
+# vX.Y.Z, or records the failed version itself (restoring would redeploy it).
+#
+# The ledger is untrusted input. The URL is fixed (there is no option to change
+# it), the response is size and time capped, redirects are not followed, and any
+# value shown in a message is quoted, escaped and cut short so it cannot start a
+# GitHub Actions workflow command ("::...") or a second log line.
+#
+# Pure stdlib. The logic is in LastGoodRelease so specs can load this file and
+# inject a fetcher instead of using the network.
+
+require 'json'
+require 'net/http'
+require 'uri'
+
+class LastGoodRelease
+  class Error < StandardError; end
+
+  LEDGER_URL = 'https://raw.githubusercontent.com/greeterhq/greeter-acceptance/ledger-stage/deployed.json'
+  SCHEMA = 'greeterhq.deployed.v1'
+  ENVIRONMENT = 'stage'
+  VERSION_PATTERN = /\Av\d+\.\d+\.\d+\z/
+  MAX_BODY_BYTES = 64 * 1024
+  MAX_SHOWN_CHARS = 64
+  TIMEOUT_SECONDS = 10
+  PREFIX = 'last-good-release:'
+
+  # Fetches the URL over https. Raises on anything but a small 200 response.
+  DEFAULT_FETCHER = lambda do |url|
+    uri = URI.parse(url)
+    raise IOError, 'https required' unless uri.scheme == 'https'
+
+    body = +''
+    Net::HTTP.start(uri.host, uri.port, use_ssl: true,
+                                        open_timeout: TIMEOUT_SECONDS, read_timeout: TIMEOUT_SECONDS) do |http|
+      http.request(Net::HTTP::Get.new(uri)) do |response|
+        raise IOError, "unexpected HTTP status #{response.code}" unless response.is_a?(Net::HTTPOK)
+
+        response.read_body do |chunk|
+          body << chunk
+          raise IOError, 'response too large' if body.bytesize > MAX_BODY_BYTES
+        end
+      end
+    end
+    body
+  end
+
+  # @return [Integer] the process exit status
+  def self.run(argv, fetcher: DEFAULT_FETCHER, stdout: $stdout, stderr: $stderr)
+    return usage(stderr) unless argv.size == 1
+
+    version = new(fetcher: fetcher).call(argv.first)
+    stdout.puts(version)
+    0
+  rescue Error => e
+    stderr.puts("#{PREFIX} #{e.message}")
+    1
+  end
+
+  def self.usage(stderr)
+    stderr.puts("#{PREFIX} usage: bin/last-good-release <failed-tag>")
+    1
+  end
+
+  def initialize(fetcher:, ledger_url: LEDGER_URL)
+    @fetcher = fetcher
+    @ledger_url = ledger_url
+  end
+
+  # @return [String] the recorded http version
+  # @raise [Error] with a one-line reason
+  def call(failed_tag)
+    raise Error, "failed tag #{shown(failed_tag)} is invalid (expected vX.Y.Z)" unless valid_version?(failed_tag)
+
+    ledger = parse(fetch)
+    check_header(ledger)
+    version = recorded_http_version(ledger)
+    if version == failed_tag
+      raise Error, "recorded http version #{shown(version)} is the failed version; " \
+                   'restoring would redeploy the failed version'
+    end
+
+    version
+  end
+
+  private
+
+  def fetch
+    body = @fetcher.call(@ledger_url)
+    raise Error, 'ledger unreadable (empty response)' unless body.is_a?(String) && !body.empty?
+
+    body
+  rescue Error
+    raise
+  rescue StandardError => e
+    raise Error, "ledger unreadable (#{e.class})"
+  end
+
+  def parse(body)
+    ledger = JSON.parse(body)
+    raise Error, 'ledger unreadable (not a JSON object)' unless ledger.is_a?(Hash)
+
+    ledger
+  rescue JSON::ParserError
+    raise Error, 'ledger unreadable (not valid JSON)'
+  end
+
+  def check_header(ledger)
+    raise Error, "ledger schema #{shown(ledger['schema'])} is not #{SCHEMA}" unless ledger['schema'] == SCHEMA
+    return if ledger['environment'] == ENVIRONMENT
+
+    raise Error, "ledger environment #{shown(ledger['environment'])} is not #{ENVIRONMENT}"
+  end
+
+  def recorded_http_version(ledger)
+    channels = ledger['channels']
+    http = channels.is_a?(Hash) ? channels['http'] : nil
+    version = http.is_a?(Hash) ? http['version'] : nil
+    raise Error, 'ledger has no recorded http version' if version.nil?
+    raise Error, "recorded http version #{shown(version)} is invalid (expected vX.Y.Z)" unless valid_version?(version)
+
+    version
+  end
+
+  def valid_version?(value)
+    value.is_a?(String) && value.match?(VERSION_PATTERN)
+  end
+
+  # An untrusted value, safe to put in a one-line message: escaped (a line break
+  # becomes the two characters \n), quoted, and cut to MAX_SHOWN_CHARS.
+  def shown(value)
+    text = value.to_s
+    cut = text[0, MAX_SHOWN_CHARS].inspect
+    text.length > MAX_SHOWN_CHARS ? "#{cut}..." : cut
+  end
+end
+
+exit LastGoodRelease.run(ARGV) if $PROGRAM_NAME == __FILE__
