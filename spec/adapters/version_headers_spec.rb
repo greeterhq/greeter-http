@@ -37,9 +37,10 @@ RSpec.describe 'version headers' do
     expect(response.get_header(CORE_HEADER)).to eq(Greeter::Core::VERSION)
   end
 
-  # Not an OpenSpec scenario: pins the release bump so the headers advertise 0.5.20.
-  it 'is released as service version 0.5.20' do
-    expect(GreeterHttp::VERSION).to eq('0.5.20')
+  # Not an OpenSpec scenario: the advertised service version is a plain dotted
+  # version (no leading "v"), whatever the current release is.
+  it 'has a plain dotted service version' do
+    expect(GreeterHttp::VERSION).to match(/\A\d+\.\d+\.\d+\z/)
   end
 
   describe 'successful greetings' do
