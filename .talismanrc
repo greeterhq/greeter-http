@@ -2,7 +2,7 @@ fileignoreconfig:
 - filename: .github/workflows/cd.yml
   checksum: 8ec0e31e68e046b62e25f59dbc16ef4e0241c732106c09b4cc7a1530b5fdb386
 - filename: .github/workflows/ci.yml
-  checksum: 188ce8fc1508cd2008d2c4af3428ac4ec1e76c774a77ce47e5f33f69a14b2fee
+  checksum: b23e0c3c24231db8a1b5ad2b7558c854e1fbededbbe3295a6c614471fcdd945a
 - filename: spec/security/http_security_spec.rb
   checksum: 77ff48c901c3d0f87fdfaed914f441dad09b85427fe837ff9e2e3bd0fbbbbab2
 - filename: .kiro/prompts/opsx-continue.prompt.md
@@ -101,8 +101,10 @@ fileignoreconfig:
   checksum: 20b01bdc7cc2903c5733439c35071cdc2f287b9ccc76b2e11db15d3c398d4d0c
 - filename: spec/workflows/cd_workflow_spec.rb
   checksum: 5dd7ed384420cb4ec6918793852b4ecd8e8daedf858c7b751eff4e05e369f0d3  
+- filename: openspec/changes/adopt-acceptance-gate/design.md
+  checksum: 7f97db9341f40981863f218c1fbb64a6bd4bc96d56ea785916cd5a5f9f31c660
 - filename: openspec/changes/adopt-acceptance-gate/tasks.md
-  checksum: 1df352fde4eb100ca9ec7ccd86c3cad686d5668a6084797de1d4bdc503368d70
+  checksum: 3eaf093599f2b5fd2364f2d54e4a26d1bb01b6681634be796a5eee4a959d3ab4
 - filename: openspec/config.yaml
   checksum: e3a1bcecd66c30e5fe2b977dca8604281de0ffc2b8133a1183a5aa6ba92790be
 - filename: openspec/specs/greeting-counter/spec.md

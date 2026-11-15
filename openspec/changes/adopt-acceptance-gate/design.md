@@ -159,7 +159,7 @@ See proposal.md for motivation and non-goals.
 | S8 | Prod bypass. | High | `deploy-prod` needs `gate`, has no `always()`, and a structure spec asserts both. |
 | S9 | `restore-dev` uses the deploy role against dev. | Low | Same role and `dev` environment as `deploy-dev`; no new permissions. Credentials are configured only after the ledger check passes. |
 | S10 | Workspace rule: synthetic traffic to a deployed environment must send `X-Greeter-Synthetic: true`. `bin/smoke` does not, and `restore-dev` runs it (as `deploy-dev` already does). | Low | Not changed here (`bin/smoke` is outside the files you listed). Suggest a follow-up change. The acceptance suite's own traffic is its repo's concern. |
-| S11 | `DISPATCH_APP_CLIENT_ID` is `5670669`, which looks like a numeric App ID rather than a Client ID (those usually look like `Iv...`). The v3 token action expects the client id. | Medium | Verify before the first release; if it is the App ID, the mint step fails and announcements never happen (the release itself is unaffected). Recorded as a task (4.5). |
+| S11 | `DISPATCH_APP_CLIENT_ID` is `5670669`, which looks like a numeric App ID rather than a Client ID (those usually look like `Iv...`). The v3 token action expects the client id. | Medium | Verify before the first release; if it is the App ID, the mint step fails and announcements never happen (the release itself is unaffected). Resolved: see "Credentials (task 4.5)". |
 | S12 | **Workflow-command injection through logs.** GitHub Actions parses lines that start with `::` in a step's output. The tag (from the event) and the ledger version (from the network) are untrusted; echoing either, for example in an `::error::` line, lets its author emit commands or forge annotations (a line break in the value starts a new line). | Medium | Code. `resolve` prints only static text on a bad tag, never the tag. `bin/last-good-release` shows an untrusted value only as a quoted, escaped, length-limited string inside a message that starts with the tool name, so no output line can start with `::`. Spec scenarios and tasks 1.1, 1.3, 2.1, 3.1. Values are written to `$GITHUB_OUTPUT` only after validation, so output injection is not possible. |
 | S13 | **Over-broad App token.** `create-github-app-token` gives the token every permission the App holds on the target repository unless narrowed. A repository dispatch only needs `contents: write`. | Medium | Code. The mint step sets `permission-contents: write` and nothing else. Asserted by the structure spec. Tasks 1.3, 3.3. |
 | S14 | **Implicit default token permissions.** `cd.yml` has no workflow-level `permissions`, so any job without its own block inherits the repository default, which may be write. | Medium | Code. Add workflow-level `permissions: {}` and declare permissions on every job (`resolve`, `deploy-dev`, `gate`, `restore-dev`, `deploy-prod`, announce jobs). A spec asserts every job declares its own. Tasks 1.3, 3.1. |
@@ -198,6 +198,47 @@ See proposal.md for motivation and non-goals.
   (The structure spec asserts `deploy-dev` no longer mentions the payload.)
 - `actionlint` 1.7.12 has stale metadata for `actions/create-github-app-token@v3`:
   it demands `app-id` and rejects `client-id`, but the action's `action.yml` at
-  `v3` defines `client-id` and marks `app-id` deprecated. Those two reports (and
-  a pre-existing shellcheck SC2034 in `ci.yml`'s functional job) are false
-  positives or unrelated; they are ignored with `-ignore` when verifying.
+  `v3` defines `client-id` and marks `app-id` deprecated. Those two reports are
+  ignored for `cd.yml` only, in `.github/actionlint.yaml` (same file as
+  greeter-cli; remove it once actionlint lists `client-id`). Nothing is ignored
+  on the command line, and SC2034 is fixed, not ignored (see Files changed).
+- Accepted after review: the reworded "no release tag from the resolve job"
+  message, and requesting only `permission-contents: write` when minting.
+
+## Files changed
+
+- `.github/workflows/cd.yml`: `resolve`, `gate`, `restore-dev`,
+  `announce-stage`, `announce-prod`; `deploy-dev` and `deploy-prod` rewired;
+  workflow-level `permissions: {}`.
+- `.github/workflows/ci.yml`: the lint step `bin/check-acceptance-ref`, and
+  `for i in $(seq 1 30)` changed to `for _ in $(seq 1 30)` in the step "Start
+  DynamoDB Local (-sharedDb)" (fixes shellcheck SC2034, which `actionlint`
+  reports for the unused loop variable).
+- `.github/actionlint.yaml` (new): the two `create-github-app-token@v3` metadata
+  ignores for `cd.yml`.
+- `bin/last-good-release`, `bin/check-acceptance-ref` (new).
+- `spec/bin/`, `spec/workflows/`, `spec/fixtures/ledger/`,
+  `spec/fixtures/workflows/` (new, from the red-tests commit).
+- `docs/observability.md`: "Rollback" gains the `restore-dev` section.
+- `.talismanrc`: checksums for `cd.yml` and `ci.yml` only.
+
+## Credentials (task 4.5)
+
+Maintainer decision, recorded here: `vars.DISPATCH_APP_CLIENT_ID` stays as it
+is. Its value `5670669` is the numeric App ID, and that is acceptable:
+`actions/create-github-app-token@v3` passes `client-id` straight to
+`@octokit/auth-app`, which accepts an App ID or a Client ID. The same value has
+already worked from greeter-cli: both ledger branches show cli `v0.1.12`
+recorded by its announce jobs. That also shows the `greeterhq-dispatch` App is
+installed on `greeter-acceptance` with Contents: write, which a repository
+dispatch needs. The variable keeps its name; all repositories may later move to
+the Client ID. This supersedes security finding S11's concern.
+
+## Verification
+
+First real releases after merge. The URLs are filled in before archiving.
+
+| Release | What it proves | Expected | Run |
+| --- | --- | --- | --- |
+| `v0.5.21` (real) | Passing path | `resolve` outputs tag and sha; `deploy-dev` then `gate` pass; `announce-stage` records `v0.5.21` on the stage ledger; `deploy-prod` waits for approval; after approval and its smoke, `announce-prod` records it on the prod ledger | <passing run URL v0.5.21> |
+| `v0.5.22` (throwaway) | Failing path | `gate` fails; `restore-dev` redeploys `v0.5.21` to dev and the run ends red; `deploy-prod` is skipped and no approval is requested; no announcement is sent | <refused run URL v0.5.22> |

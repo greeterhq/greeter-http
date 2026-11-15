@@ -35,14 +35,14 @@ Edit one concern at a time and run `actionlint` after each.
 
 - [x] 4.1 Update `docs/observability.md` "Rollback": describe `restore-dev` (when it runs, what it restores, what it refuses, that the run stays red), how to read its refusal messages, and that prod is never touched. Verify: the described steps match the job names and messages in `cd.yml` and `bin/last-good-release`.
 - [x] 4.2 Run `bundle exec rspec` and `bundle exec cucumber`. Verify: all green.
-- [ ] 4.3 Run `bundle exec rubocop`, `actionlint`, `sam validate --template infra/template.yaml --lint`, `bin/check-acceptance-ref`, and `openspec validate adopt-acceptance-gate --strict`. Verify: all pass with no offences.
+- [x] 4.3 Add `.github/actionlint.yaml` (the two `create-github-app-token@v3` ignores for `cd.yml`, as in greeter-cli), change `for i in $(seq 1 30)` to `for _ in $(seq 1 30)` in `ci.yml`'s step "Start DynamoDB Local (-sharedDb)" (fixes SC2034), then run `bundle exec rubocop`, `actionlint` (no arguments, no `-ignore` flags), `sam validate --template infra/template.yaml --lint`, `bin/check-acceptance-ref`, and `openspec validate --all --strict`. Verify: all pass with no offences, and `actionlint` exits 0.
 - [x] 4.4 Run `bin/last-good-release v0.5.21` read-only against the live stage ledger. Verify: it prints the version the ledger records (currently `v0.5.20`), and `bin/last-good-release v0.5.20` fails saying it equals the failed version.
-- [ ] 4.5 Confirm the App credentials before the first release: `vars.DISPATCH_APP_CLIENT_ID` is the App's Client ID (not its numeric App ID), and the App is installed on `greeter-acceptance` with permission to send a repository dispatch. Verify: a test mint plus dispatch from a throwaway workflow run, or the repository settings, show both.
-- [ ] 4.6 After merge, cut the next release tag and watch the run. Verify: `resolve` outputs the tag and sha; `deploy-dev` then `gate` pass; `announce-stage` appears on the stage ledger; `deploy-prod` waits for approval; after approval and its smoke, `announce-prod` appears on the prod ledger.
+- [x] 4.5 App credentials: no change. `vars.DISPATCH_APP_CLIENT_ID` keeps its name and its value (the numeric App ID `5670669`), which `create-github-app-token@v3` accepts via `@octokit/auth-app`; greeter-cli's announce jobs already recorded cli `v0.1.12` on both ledger branches with it, which also shows the App is installed on `greeter-acceptance` with Contents: write. Verify: the note is in design.md "Credentials (task 4.5)".
+- [x] 4.6 First real releases, verified after merge and recorded in design.md "Verification": the real `v0.5.21` release (gate passes, stage announced, prod waits for approval, prod announced) and a throwaway `v0.5.22` (gate fails, `restore-dev` puts back `v0.5.21`, prod is skipped). Verify: the design.md "Verification" table exists with the two run URLs, to be filled in before archiving.
 
 ## Workflow follow-up
 
-- Archive the change after 4.6 passes.
+- Archive the change after the "Verification" table in design.md has both run URLs filled in.
 - Separate change: make `bin/smoke` send `X-Greeter-Synthetic: true`.
 - Repository settings, no code (S16, S17): enable immutable releases on `greeter-http`, and tag protection for `v*` on `greeter-acceptance`.
 - Separate change (S17): have `resolve` record the artifact digest and make `deploy-dev` and `deploy-prod` verify against it.

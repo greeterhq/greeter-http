@@ -50,7 +50,9 @@ change.
 - Repos touched: `greeter-http` only. **greeter-core is not affected.**
   `greeter-acceptance` is consumed (reusable workflow, ledger read, dispatch
   target) and not modified.
-- Files: `.github/workflows/cd.yml`, `.github/workflows/ci.yml` (one lint step),
+- Files: `.github/workflows/cd.yml`, `.github/workflows/ci.yml` (one lint step,
+  plus renaming an unused loop variable to `_` to clear shellcheck SC2034),
+  `.github/actionlint.yaml` (two metadata ignores for `cd.yml`),
   `bin/last-good-release`, `bin/check-acceptance-ref`, `docs/observability.md`,
   new specs under `spec/bin/` and `spec/workflows/` with fixtures under
   `spec/fixtures/`.
