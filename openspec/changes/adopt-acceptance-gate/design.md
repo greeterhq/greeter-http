@@ -236,9 +236,9 @@ the Client ID. This supersedes security finding S11's concern.
 
 ## Verification
 
-First real releases after merge. The URLs are filled in before archiving.
+First real releases after merge, recorded 2026-11-15.
 
 | Release | What it proves | Expected | Run |
 | --- | --- | --- | --- |
-| `v0.5.21` (real) | Passing path | `resolve` outputs tag and sha; `deploy-dev` then `gate` pass; `announce-stage` records `v0.5.21` on the stage ledger; `deploy-prod` waits for approval; after approval and its smoke, `announce-prod` records it on the prod ledger | <passing run URL v0.5.21> |
-| `v0.5.22` (throwaway) | Failing path | `gate` fails; `restore-dev` redeploys `v0.5.21` to dev and the run ends red; `deploy-prod` is skipped and no approval is requested; no announcement is sent | <refused run URL v0.5.22> |
+| `v0.5.21` (real) | Passing path | `resolve` outputs tag and sha; `deploy-dev` then `gate` pass; `announce-stage` records `v0.5.21` on the stage ledger; `deploy-prod` waits for approval; after approval and its smoke, `announce-prod` records it on the prod ledger | https://github.com/greeterhq/greeter-http/actions/runs/43720192453 (2026-11-15; resolve, deploy-dev, gate, deploy-prod, announce-stage and announce-prod succeeded, restore-dev skipped; both ledgers record `v0.5.21`) |
+| `v0.5.22` (throwaway) | Failing path | `gate` fails; `restore-dev` redeploys `v0.5.21` to dev and the run ends red; `deploy-prod` is skipped and no approval is requested; no announcement is sent | https://github.com/greeterhq/greeter-http/actions/runs/43767011838 (2026-11-15; resolve and deploy-dev succeeded; gate failed on 3 of 5 suite scenarios, `greeting.feature:18`, `:24` and `:31`, because the response had `total` and no `count`; restore-dev read `v0.5.21` from the stage ledger, verified the checksum, redeployed it to dev and passed `bin/smoke`, then failed its last step so the run is red; announce-stage, deploy-prod and announce-prod skipped; no pending deployment; ledgers still `v0.5.21`; dev and prod both answer `x-greeter-version: 0.5.21`; dev alarms stayed OK) |

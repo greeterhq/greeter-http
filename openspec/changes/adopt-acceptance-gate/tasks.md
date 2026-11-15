@@ -42,7 +42,7 @@ Edit one concern at a time and run `actionlint` after each.
 
 ## Workflow follow-up
 
-- Archive the change after the "Verification" table in design.md has both run URLs filled in.
+- Archive the change: the "Verification" table in design.md now has both run URLs.
 - Separate change: make `bin/smoke` send `X-Greeter-Synthetic: true`.
 - Repository settings, no code (S16, S17): enable immutable releases on `greeter-http`, and tag protection for `v*` on `greeter-acceptance`.
 - Separate change (S17): have `resolve` record the artifact digest and make `deploy-dev` and `deploy-prod` verify against it.
