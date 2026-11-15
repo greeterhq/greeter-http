@@ -66,11 +66,11 @@ fileignoreconfig:
 - filename: bin/iam-check
   checksum: 70c512b3f9e7a95e95c20ab0b0bf5c3d1b3eb61809e290fcbe1c809ad1a2f941
 - filename: bin/smoke
-  checksum: 2ee33ace64f1823b5932e40ec23e16f5c97c8c11f35566830ee83abaeb82035f
+  checksum: 276fcff752b4c39b7365f8e360f03fd76f239f830745c40e96fe0dabe9aaa327
 - filename: docs/observability.md
   checksum: 7565e46da649dd12581daf951ad625147e71c035a436189ebd0388a123fb54cb  
 - filename: features/step_definitions/smoke_steps.rb
-  checksum: cd9007cc8cf13fd8c6c2922d93ca061c6cf18287bf41f715008a50697cbf4e77
+  checksum: ecada729a20d37c3c9d457b0bd8a62e96153f03f296138d9d07b9d03a0a691ca
 - filename: features/support/env.rb
   checksum: 8a53a245f11f6278c458910d947564839734d7236eb851e9e8299b76b0c92abb
 - filename: infra/cd-deploy-policy.md

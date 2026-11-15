@@ -50,10 +50,14 @@ def post(name: nil, key: SecureRandom.uuid, raw_body: nil)
 end
 
 # Safely pull the numeric "count" from a response body; nil if absent/unparsable.
+# A release that renames the key to "total" must still be smoke-checkable (CD runs
+# this script from the default branch against whatever is deployed, including a
+# restore to the previous release), so "total" is accepted when "count" is absent.
 def parsed_count(resp)
   return nil if resp.body.nil? || resp.body.empty?
 
-  JSON.parse(resp.body)['count']
+  body = JSON.parse(resp.body)
+  body.key?('count') ? body['count'] : body['total']
 rescue JSON::ParserError
   nil
 end

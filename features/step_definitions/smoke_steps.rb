@@ -26,6 +26,14 @@ def smoke_post(base_url, name, idempotency_key)
   http.request(request)
 end
 
+# The running guest count is `count` today. A release that renames it to
+# `total` must still be smoke-checkable (CD runs these steps from the default
+# branch against whatever is deployed), so a lookup of `count` also accepts
+# `total`. Every other key is read exactly as before.
+def smoke_body_value(body, key)
+  body.fetch(key) { key == 'count' ? body.fetch('total') : body.fetch(key) }
+end
+
 Given('the deployed base URL from GREETER_BASE_URL') do
   @base_url = ENV.fetch('GREETER_BASE_URL')
 end
@@ -36,7 +44,7 @@ end
 
 Given('I POST a greeting for {string} with idempotency key {string}') do |name, key|
   @response = smoke_post(@base_url, name, key)
-  @first_smoke_count = JSON.parse(@response.body).fetch('count')
+  @first_smoke_count = smoke_body_value(JSON.parse(@response.body), 'count')
 end
 
 When('I POST the same greeting again with idempotency key {string}') do |key|
@@ -59,7 +67,7 @@ Then('the JSON body has a {string} of {int}') do |key, value|
 end
 
 Then('the JSON body {string} is a positive integer') do |key|
-  value = JSON.parse(@response.body).fetch(key)
+  value = smoke_body_value(JSON.parse(@response.body), key)
   expect(value).to be_a(Integer)
   expect(value).to be_positive
 end
@@ -69,7 +77,7 @@ Then('the JSON body {string} is {string}') do |key, value|
 end
 
 Then('the JSON body {string} equals the first smoke response count') do |key|
-  expect(JSON.parse(@response.body).fetch(key)).to eq(@first_smoke_count)
+  expect(smoke_body_value(JSON.parse(@response.body), key)).to eq(@first_smoke_count)
 end
 
 Then('the response body does not contain {string}') do |needle|
