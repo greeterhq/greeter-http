@@ -99,6 +99,8 @@ fileignoreconfig:
   checksum: b6cab31a5f53dcb0b04a36526d7bdcf8ac769ae4b0359f6d1ce5749ef5d83ea2
 - filename: spec/adapters/version_headers_spec.rb
   checksum: 20b01bdc7cc2903c5733439c35071cdc2f287b9ccc76b2e11db15d3c398d4d0c
+- filename: spec/bin/guard_test_edits_spec.rb
+  checksum: 908a2a09ace38379f1273f2b03fc616bff41b26855ad1f86f7c6c018582cd284
 - filename: spec/workflows/cd_workflow_spec.rb
   checksum: 5dd7ed384420cb4ec6918793852b4ecd8e8daedf858c7b751eff4e05e369f0d3  
   checksum: 3eaf093599f2b5fd2364f2d54e4a26d1bb01b6681634be796a5eee4a959d3ab4
