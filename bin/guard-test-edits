@@ -1,8 +1,97 @@
 #!/usr/bin/env bash
-set -euo pipefail
+# guard-test-edits: PreToolUse guard for the agent (see .kiro/hooks/tdd-guards.json).
+#
+# Kiro sends one JSON object on stdin:
+#   {"hook_event_name":"PreToolUse","cwd":...,"tool_name":"fs_write",
+#    "tool_input":{"path":"...", ...}}            (execute_bash: {"command":"..."})
+# Exit 0 allows the call. Exit 2 blocks it and Kiro shows our stderr to the agent.
+#
+# Protected paths: spec/, features/, .kiro/hooks/ and this script.
+#   * File tools (fs_write, str_replace, fs_append, delete_file, smart_relocate,
+#     semantic_rename): blocked when any path argument is protected.
+#   * execute_bash: blocked when ONE simple command both writes (redirect, tee,
+#     sed -i, mv, cp, rm, touch, git checkout/restore/apply, File.write, rubocop -A ...)
+#     and names a protected path. This is a heuristic backstop for the obvious
+#     routes, not a sandbox.
+#
+# The user opens the gate by creating tmp/allow-test-edits in THEIR OWN terminal for
+# the test-writing step, and removes it afterwards. The agent can never create or
+# remove that file: any tool call that names it is blocked, flag or no flag.
+#
+# Every decision is appended to tmp/guard.log (tab separated: time, tool, decision,
+# reason, target), so "did the guard fire?" can always be answered from the log.
+set -uo pipefail
+
+cd "$(dirname "$0")/.." || exit 0
+FLAG=tmp/allow-test-edits
+LOG=tmp/guard.log
 payload=$(cat)
-if echo "$payload" | grep -Eq '"(path|file_path|targetFile)"\s*:\s*"([^"]*/)?(spec|features)/'; then
-  [[ -f tmp/allow-test-edits ]] && exit 0
-  echo "Blocked: tests are read-only during apply. Run: touch tmp/allow-test-edits for the test-writing step." >&2
+
+tool=$(printf '%s' "$payload" | grep -oE '"tool_name"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | sed -E 's/.*:[[:space:]]*"([^"]*)"$/\1/')
+
+PRE='[^[:alnum:]_-]'
+PROT_DIRS="(spec|features)/|\\.kiro/hooks/|bin/guard-test-edits"
+PROT="${PRE}(${PROT_DIRS})"
+
+audit() { # decision reason target
+  mkdir -p tmp 2>/dev/null
+  printf '%s\t%s\t%s\t%s\t%s\n' "$(date -u +%FT%TZ)" "${tool:-?}" "$1" "$2" "$(printf '%s' "$3" | cut -c1-160)" >> "$LOG" 2>/dev/null || true
+}
+
+block() { # reason target message
+  audit block "$1" "$2"
+  echo "Blocked: $3" >&2
   exit 2
-fi
+}
+
+allow() { # reason target
+  audit allow "$1" "$2"
+  exit 0
+}
+
+GATE_MSG="tests, the guard and the hook config are read-only for the agent. The user opens the gate by running 'touch tmp/allow-test-edits' in their own terminal for the test-writing step (and removing it afterwards)."
+FLAG_MSG="tmp/allow-test-edits can only be created or removed by the user, in their own terminal. The agent must not touch it."
+
+case "$tool" in
+  fs_write | str_replace | fs_append | delete_file | smart_relocate | semantic_rename)
+    paths=$(printf '%s' "$payload" |
+      grep -oE '"(path|file_path|targetFile|sourcePath|destinationPath)"[[:space:]]*:[[:space:]]*"[^"]*"' |
+      sed -E 's/^"[^"]*"[[:space:]]*:[[:space:]]*"(.*)"$/\1/')
+    [ -z "$paths" ] && allow "no path argument" "-"
+    if printf '%s\n' "$paths" | grep -qE '(^|/)allow-test-edits$'; then
+      block "agent touched the flag" "$(printf '%s' "$paths" | head -1)" "$FLAG_MSG"
+    fi
+    if printf '%s\n' "$paths" | grep -qE "(^|/)(${PROT_DIRS})"; then
+      target=$(printf '%s\n' "$paths" | grep -E "(^|/)(${PROT_DIRS})" | head -1)
+      [ -f "$FLAG" ] && allow "protected path, flag present" "$target"
+      block "protected path, no flag" "$target" "$GATE_MSG"
+    fi
+    allow "unprotected path" "$(printf '%s' "$paths" | head -1)"
+    ;;
+
+  execute_bash | run_command)
+    cmd=$(printf '%s' "$payload" | sed -E 's/^.*"command"[[:space:]]*:[[:space:]]*"//')
+    if printf '%s' "$cmd" | grep -qE 'allow-test-edits'; then
+      block "agent command names the flag" "$cmd" "$FLAG_MSG"
+    fi
+    seg='[^|;&]*'
+    writes=''
+    writes="${writes}>>?[[:space:]]*(${PROT_DIRS})|"                              # > spec/x
+    writes="${writes}>>?[[:space:]]*[^|;&[:space:]]*${PROT}|"                    # > ./spec/x, > /abs/spec/x
+    writes="${writes}\\btee\\b${seg}${PROT}|"
+    writes="${writes}\\b(sed|perl)\\b${seg}[[:space:]]-[[:alpha:]]*i${seg}${PROT}|"
+    writes="${writes}\\b(mv|cp|rm|touch|truncate|install|patch|ln|dd)\\b${seg}${PROT}|"
+    writes="${writes}\\bgit[[:space:]]+(checkout|restore|apply|rm|mv|stash|reset|clean)\\b${seg}${PROT}|"
+    writes="${writes}(File\\.(write|binwrite|delete|unlink|rename)|FileUtils\\.[a-z_]+)${seg}${PROT}|"
+    writes="${writes}\\brubocop\\b${seg}[[:space:]](-A|-a|--auto-correct|--auto-correct-all)\\b${seg}${PROT}"
+    if printf '%s' "$cmd" | grep -qE "$writes"; then
+      [ -f "$FLAG" ] && allow "shell write to protected path, flag present" "$cmd"
+      block "shell write to protected path, no flag" "$cmd" "$GATE_MSG"
+    fi
+    allow "no protected write" "$cmd"
+    ;;
+
+  *)
+    exit 0
+    ;;
+esac

@@ -20,9 +20,9 @@
     },
     {
       "name": "protect-tests-during-apply",
-      "description": "Block agent writes to spec/ and features/ unless I approve",
+      "description": "Block agent writes to spec/, features/, this hook and its script unless the user has created tmp/allow-test-edits (user-only; every decision is logged to tmp/guard.log)",
       "trigger": "PreToolUse",
-      "matcher": "fs_write|str_replace|fs_append",
+      "matcher": "fs_write|str_replace|fs_append|delete_file|smart_relocate|semantic_rename|execute_bash|run_command",
       "action": { "type": "command", "command": "bin/guard-test-edits" }
     },
     {
