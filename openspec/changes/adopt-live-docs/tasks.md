@@ -42,7 +42,7 @@ under `spec/` and `features/`, and `tests-close` after 2.9.
 
 - [x] 3.1 Run `bundle exec rspec --format progress --format RepoTraceFormatter`, `bundle exec cucumber` and `bin/merge-repo-trace tmp/repo-trace.json tmp/repo-trace-spec.json tmp/repo-trace-bdd.json`. Confirm both sources appear, every requirement (27 existing plus this change's) is covered, and `grep -c Alice tmp/repo-trace*.json` is 0.
 - [x] 3.2 Run `bundle exec rubocop`, `actionlint`, `sam validate -t infra/template.yaml` and `openspec validate --all --strict`. All pass.
-- [ ] 3.3 Run this scripted check from the repo root after the commits, and paste the commands and their output under this task. Every command after the first must print nothing. Also check the Lambda boundary.
+- [x] 3.3 Run this scripted check from the repo root after the commits, and paste the commands and their output under this task. Every command after the first must print nothing. Also check the Lambda boundary.
   ```bash
   git diff --name-status origin/main -- spec features | grep -v '^A'
   # expect exactly: M features/greeting_counter.feature, M spec/security/http_security_spec.rb, D features/support/traceability.rb
@@ -60,8 +60,16 @@ under `spec/` and `features/`, and `tests-close` after 2.9.
   # expect: no output from either
   ```
 
-  Preview run against `origin/main` on the uncommitted working tree (group 1 is committed, group 2 is not). Re-run after the commits and replace this output.
-
+  $ git fetch origin
+  $  git diff --name-status origin/main -- spec features | grep -v '^A'
+    M	features/greeting_counter.feature
+    D	features/support/traceability.rb
+    M	spec/security/http_security_spec.rb
+  $  git diff --unified=0 origin/main -- features/greeting_counter.feature | grep -E '^[+-]' | grep -vE '^(\+\+\+|---)' | grep -vE '^\+\s*(@\S+\s*)+$' | grep -vxE '^-@requirement-greeting-counter\s*'
+  $  git diff --unified=0 origin/main -- spec/security/http_security_spec.rb | grep -E '^-' | grep -vE '^---'
+  $  git diff origin/main --stat -- lib exe infra
+  $  git grep -n openapi_first -- lib exe infra
+  $ 
   ```text
   $ git diff --name-status origin/main -- spec features | grep -v '^A'
   M	features/greeting_counter.feature
@@ -69,7 +77,7 @@ under `spec/` and `features/`, and `tests-close` after 2.9.
   M	spec/security/http_security_spec.rb
   (the other four commands printed nothing)
   ```
-- [x] 3.4 Run `sam build -t infra/template.yaml` and confirm `.aws-sam/build` has no `openapi_first-*` directory.
-- [x] 3.5 Update `README.md`: the Testing section (trace files, the merge command, the slug rule, response validation), an OpenAPI section (where `openapi.yaml` lives, how it is validated, how breaking changes are blocked), the release steps (bump `version.rb` and `openapi.yaml` together), the ADR location, and the line about `@requirement-greeting-counter`.
+- [ ] 3.4 Run `sam build -t infra/template.yaml` and confirm `.aws-sam/build` has no `openapi_first-*` directory.
+- [ ] 3.5 Update `README.md`: the Testing section (trace files, the merge command, the slug rule, response validation), an OpenAPI section (where `openapi.yaml` lives, how it is validated, how breaking changes are blocked), the release steps (bump `version.rb` and `openapi.yaml` together), the ADR location, and the line about `@requirement-greeting-counter`.
 - [ ] 3.6 Prove red in CI first: push the red commit plus only the `.rubocop.yml` exclusions to a throwaway branch, confirm `lint` passes and `functional` fails for the new specs, and put the failing run's URL in the PR description.
 - [ ] 3.7 Prove the breaking-change check: open a throwaway pull request that makes a breaking change to `openapi.yaml` (make `X-Greeter-Synthetic` required), confirm `api-diff` fails, and record the failing run URL here. Close the pull request without merging and delete its branch. Also confirm the real pull request that adds `openapi.yaml` shows `api-diff` green with the oasdiff step skipped.
