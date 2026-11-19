@@ -3,7 +3,7 @@ info:
   title: greeter-http
   # Keep equal to GreeterHttp::VERSION (lib/greeter_http/version.rb): a spec fails
   # the build when they differ, so bump both in the same commit.
-  version: '0.5.21'
+  version: 0.5.22
   description: |
     Greets a named guest and returns how many times that guest has been greeted.
     Retries never inflate the count: a request repeated with the same
