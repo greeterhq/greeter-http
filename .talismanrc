@@ -116,18 +116,12 @@ fileignoreconfig:
 - filename: spec/workflows/cd_workflow_spec.rb
   checksum: 5dd7ed384420cb4ec6918793852b4ecd8e8daedf858c7b751eff4e05e369f0d3  
   checksum: 3eaf093599f2b5fd2364f2d54e4a26d1bb01b6681634be796a5eee4a959d3ab4
-- filename: openspec/changes/adopt-live-docs/proposal.md
-  checksum: 7e373e99da6984d288096fab5be1bfc917a97f56edc9e1758f1564db391f2b39
-- filename: openspec/changes/adopt-live-docs/specs/api-description/spec.md
-  checksum: d813156d36ab0b653ed1904139608c4ddb370c6c5593e8a600649339d60d89c3
-- filename: openspec/changes/adopt-live-docs/tasks.md
-  checksum: 6f45525c3f131fd2bb4df2b5cd658cc899eb63c66d7ab8d39e150c3356392638
-- filename: openspec/changes/adopt-live-docs/specs/live-docs-traceability/spec.md
-  checksum: 74bef003c571601b0aabcd9e534152599815740b9698c422241194cf9505be31
-- filename: openspec/changes/adopt-live-docs/design.md
-  checksum: 25bd6ffdbb9fba95cc1d2029f023ea4d44a6245de656bf450d4e23924eaa70ca
 - filename: openspec/config.yaml
   checksum: e3a1bcecd66c30e5fe2b977dca8604281de0ffc2b8133a1183a5aa6ba92790be
+- filename: openspec/specs/api-description/spec.md
+  checksum: c5f82267423e0fd46eb6b27990c3cc7eb1eb00cc6273e0350990a0792dee86ca
+- filename: openspec/specs/live-docs-traceability/spec.md
+  checksum: 42fc728fa9b0132f04cac4d1dce376517fddbecef482e90fed934327a84f3688
 - filename: openspec/specs/acceptance-gated-release/spec.md
   checksum: 99556ad417bc99782a3f622d2b5194aa1df113e31f373da9a10db5645e507af7  
 - filename: openspec/specs/greeting-counter/spec.md

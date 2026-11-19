@@ -35,8 +35,8 @@ under `spec/` and `features/`, and `tests-close` after 2.9.
 - [x] 2.7 Update `ci.yml`: top-level `permissions`, `concurrency` (group `ci-${{ github.event_name }}-${{ github.ref }}`, `cancel-in-progress: ${{ github.event_name == 'pull_request' }}`), the schedule, the `functional` trace env, formatter, merge and gated upload, remove the `traceability-report` upload, add `notify-docs` and `api-diff`, and update `release` (copy `openapi.yaml`, check the bundle). Verify: `ci_workflow_spec` passes and `actionlint` is clean.
 - [x] 2.8 Write the two ADRs in `docs/adr/`. Verify: the ADR spec passes.
 - [x] 2.9 Add the file-scoped `.rubocop.yml` exclusions. Verify: `bundle exec rubocop` is clean.
-- [ ] 2.10 At commit time, add or refresh `.talismanrc` checksum entries only for files Talisman actually flags, using the pre-commit hook's suggested entries. Remove entries for deleted files.
-- [ ] 2.11 Manual, outside the repo: set `DISPATCH_APP_CLIENT_ID` and `DISPATCH_APP_PRIVATE_KEY` for this repo and install the App on `greeter-docs` with Contents write.
+- [x] 2.10 At commit time, add or refresh `.talismanrc` checksum entries only for files Talisman actually flags, using the pre-commit hook's suggested entries. Remove entries for deleted files.
+- [x] 2.11 Manual, outside the repo: set `DISPATCH_APP_CLIENT_ID` and `DISPATCH_APP_PRIVATE_KEY` for this repo and install the App on `greeter-docs` with Contents write.
 
 ## 3. Verify and docs
 
@@ -77,8 +77,8 @@ under `spec/` and `features/`, and `tests-close` after 2.9.
   M	spec/security/http_security_spec.rb
   (the other four commands printed nothing)
   ```
-- [ ] 3.4 Run `sam build -t infra/template.yaml` and confirm `.aws-sam/build` has no `openapi_first-*` directory.
-- [ ] 3.5 Update `README.md`: the Testing section (trace files, the merge command, the slug rule, response validation), an OpenAPI section (where `openapi.yaml` lives, how it is validated, how breaking changes are blocked), the release steps (bump `version.rb` and `openapi.yaml` together), the ADR location, and the line about `@requirement-greeting-counter`.
+- [x] 3.4 Run `sam build -t infra/template.yaml` and confirm `.aws-sam/build` has no `openapi_first-*` directory.
+- [x] 3.5 Update `README.md`: the Testing section (trace files, the merge command, the slug rule, response validation), an OpenAPI section (where `openapi.yaml` lives, how it is validated, how breaking changes are blocked), the release steps (bump `version.rb` and `openapi.yaml` together), the ADR location, and the line about `@requirement-greeting-counter`.
 - [x] 3.6 Prove red in CI first: push the red commit plus only the `.rubocop.yml` exclusions to a throwaway branch, confirm `lint` passes and `functional` fails for the new specs, and put the failing run's URL in the PR description.
 - [x] 3.7 Prove the breaking-change check: open a throwaway pull request that makes a breaking change to `openapi.yaml` (make `X-Greeter-Synthetic` required), confirm `api-diff` fails, and record the failing run URL here. Close the pull request without merging and delete its branch. Also confirm the real pull request that adds `openapi.yaml` shows `api-diff` green with the oasdiff step skipped.
 failing-run: https://github.com/greeterhq/greeter-http/actions/runs/44525779922
