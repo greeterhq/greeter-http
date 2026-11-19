@@ -135,7 +135,7 @@ components:
     GreeterSynthetic:
       name: X-Greeter-Synthetic
       in: header
-      required: false
+      required: true 
       description: >-
         Send "true" on monitoring traffic. The request is counted separately, so
         it never changes a real guest's count, and the response is unchanged.
