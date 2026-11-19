@@ -121,7 +121,7 @@ fileignoreconfig:
 - filename: openspec/changes/adopt-live-docs/specs/api-description/spec.md
   checksum: d813156d36ab0b653ed1904139608c4ddb370c6c5593e8a600649339d60d89c3
 - filename: openspec/changes/adopt-live-docs/tasks.md
-  checksum: c7f9005f1dea22b9099fec0a31c06b01f42191c6bc035f903a53cd1277bf42a6
+  checksum: 6f45525c3f131fd2bb4df2b5cd658cc899eb63c66d7ab8d39e150c3356392638
 - filename: openspec/changes/adopt-live-docs/specs/live-docs-traceability/spec.md
   checksum: 74bef003c571601b0aabcd9e534152599815740b9698c422241194cf9505be31
 - filename: openspec/changes/adopt-live-docs/design.md
