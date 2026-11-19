@@ -166,6 +166,24 @@ fileignoreconfig:
   checksum: fcd6025463343f4c3cb5530d5d2bcf5bbcdda52ea3bea38e14a4e34a553f1feb
 - filename: spec/integration/dynamo_greeting_counter_spec.rb
   checksum: c0f254d295ad8200a06afd6b1502c210fb4e3270e8a06ae7f22c30b5f98fe943
+- filename: spec/tooling/cucumber_repo_trace_spec.rb
+  checksum: 5c9448afe70728c47b48c04ff115e81c08a8834dac811536873d4b2c1baba535
+- filename: spec/tooling/repo_trace_document_spec.rb
+  checksum: 135baa2058e21d46d2b387d7bcb2b27824988aed784d7381facc62a8732bb3ae
+- filename: spec/tooling/repo_trace_formatter_spec.rb
+  checksum: 32004b235e6f6e07b0f525fca7ce84ab9189bd74c60b6b0c4407511cb97045d8
+- filename: spec/fixtures/repo_trace/plain.rb
+  checksum: 75bf1868cf61066cae9c514536ba3498d5ee6c7df1b0425440e23324ab5dbf0c
+- filename: spec/fixtures/repo_trace/statuses.rb
+  checksum: 8d8214433092739591cf41b0fe2ff4d7c4e5b4560841f7e06c4007c36f76b5b0
+- filename: spec/bin/merge_repo_trace_spec.rb
+  checksum: 5e101827e6cef158b0a7c1f7a529d080e52339ee4eed285b37319553bf1b9953
+- filename: spec/openapi_description_spec.rb
+  checksum: d94eaa07a51b0d00fefd4d03b88671331e6eb498f16c8753e1ae15325a4a59d7
+- filename: spec/tooling/openapi_contract_spec.rb
+  checksum: 527675d61547ae7c659d1ca0bcc50e4b361f92316d58fc3ef307ecc1445a7a4c
+- filename: spec/workflows/ci_workflow_spec.rb
+  checksum: 2578fb1c2960483759351a72c7a621e27fa1a441dee76062d27d9b061ddf1252
 - filename: vendor/greeter-core-api.md
   checksum: c79b5e64749b38dd505bf24c307c895adc384be6f00b10739f544e26aa26beb8
 version: ""
