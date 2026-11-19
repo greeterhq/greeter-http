@@ -58,7 +58,7 @@ fileignoreconfig:
 - filename: .rubocop.yml
   checksum: 105232f388caae629d30c624ba681ad5f6001e6e93ac558d39fb172da43989d5
 - filename: Gemfile.lock
-  checksum: feaebe740697fa631769ec6ffbc27db64d952c4b67da6ea63910994a8d53ff9b
+  checksum: 5ac7af2ef6fde4b40fa624ceb4d6ae48aab6a9219b3747fff7485e0f2f8bb1a2
 - filename: README.md
   checksum: 08304bd7e381920147b7319a4ea24828f698ce8cca9ea401a38f29e5b4af9f67
 - filename: env.json.example
@@ -104,6 +104,16 @@ fileignoreconfig:
 - filename: spec/workflows/cd_workflow_spec.rb
   checksum: 5dd7ed384420cb4ec6918793852b4ecd8e8daedf858c7b751eff4e05e369f0d3  
   checksum: 3eaf093599f2b5fd2364f2d54e4a26d1bb01b6681634be796a5eee4a959d3ab4
+- filename: openspec/changes/adopt-live-docs/proposal.md
+  checksum: 7e373e99da6984d288096fab5be1bfc917a97f56edc9e1758f1564db391f2b39
+- filename: openspec/changes/adopt-live-docs/specs/api-description/spec.md
+  checksum: d813156d36ab0b653ed1904139608c4ddb370c6c5593e8a600649339d60d89c3
+- filename: openspec/changes/adopt-live-docs/tasks.md
+  checksum: 2e6428daa4da4e924f221afbe4d3a43d86a1ce71756ab521231d44820eace622
+- filename: openspec/changes/adopt-live-docs/specs/live-docs-traceability/spec.md
+  checksum: 74bef003c571601b0aabcd9e534152599815740b9698c422241194cf9505be31
+- filename: openspec/changes/adopt-live-docs/design.md
+  checksum: 25bd6ffdbb9fba95cc1d2029f023ea4d44a6245de656bf450d4e23924eaa70ca
 - filename: openspec/config.yaml
   checksum: e3a1bcecd66c30e5fe2b977dca8604281de0ffc2b8133a1183a5aa6ba92790be
 - filename: openspec/specs/acceptance-gated-release/spec.md

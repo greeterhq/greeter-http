@@ -29,3 +29,5 @@ group :development, :test do
 end
 
 # gem "rails"
+
+gem "openapi_first", "~> 4.4", group: :test
