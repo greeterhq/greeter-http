@@ -1,0 +1,258 @@
+openapi: 3.1.0
+info:
+  title: greeter-http
+  # Keep equal to GreeterHttp::VERSION (lib/greeter_http/version.rb): a spec fails
+  # the build when they differ, so bump both in the same commit.
+  version: '0.5.21'
+  description: |
+    Greets a named guest and returns how many times that guest has been greeted.
+    Retries never inflate the count: a request repeated with the same
+    Idempotency-Key and the same name returns the original result.
+
+    This description is written by hand (see docs/adr/0002). Every response the
+    composed app produces in tests is validated against it, and pull requests
+    that make a breaking change to it fail.
+paths:
+  /greetings:
+    post:
+      operationId: createGreeting
+      summary: Greet a guest and return the running count
+      parameters:
+        - $ref: '#/components/parameters/IdempotencyKey'
+        - $ref: '#/components/parameters/GreeterSynthetic'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GreetingRequest'
+      responses:
+        '201':
+          description: A new greeting was recorded for the guest.
+          headers:
+            X-Greeter-Version:
+              $ref: '#/components/headers/GreeterVersion'
+            X-Greeter-Core-Version:
+              $ref: '#/components/headers/GreeterCoreVersion'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Greeting'
+        '200':
+          description: >-
+            A replay of a recorded request: the same Idempotency-Key was sent
+            with the same name, so the original result is returned and the count
+            does not change.
+          headers:
+            X-Greeter-Version:
+              $ref: '#/components/headers/GreeterVersion'
+            X-Greeter-Core-Version:
+              $ref: '#/components/headers/GreeterCoreVersion'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Greeting'
+        '400':
+          description: The body is not valid JSON, or the Idempotency-Key header is missing or empty.
+          headers:
+            X-Greeter-Version:
+              $ref: '#/components/headers/GreeterVersion'
+            X-Greeter-Core-Version:
+              $ref: '#/components/headers/GreeterCoreVersion'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestError'
+        '409':
+          description: The Idempotency-Key was already used for a different request.
+          headers:
+            X-Greeter-Version:
+              $ref: '#/components/headers/GreeterVersion'
+            X-Greeter-Core-Version:
+              $ref: '#/components/headers/GreeterCoreVersion'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConflictError'
+        '413':
+          description: The request body is larger than the service accepts.
+          headers:
+            X-Greeter-Version:
+              $ref: '#/components/headers/GreeterVersion'
+            X-Greeter-Core-Version:
+              $ref: '#/components/headers/GreeterCoreVersion'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PayloadTooLargeError'
+        '422':
+          description: The name is not valid (empty, too long, or containing disallowed characters).
+          headers:
+            X-Greeter-Version:
+              $ref: '#/components/headers/GreeterVersion'
+            X-Greeter-Core-Version:
+              $ref: '#/components/headers/GreeterCoreVersion'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvalidNameError'
+        '500':
+          description: An unexpected error occurred. Nothing about the cause is returned.
+          headers:
+            X-Greeter-Version:
+              $ref: '#/components/headers/GreeterVersion'
+            X-Greeter-Core-Version:
+              $ref: '#/components/headers/GreeterCoreVersion'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InternalError'
+        '503':
+          description: Storage is temporarily unavailable. Retry after the delay in Retry-After.
+          headers:
+            X-Greeter-Version:
+              $ref: '#/components/headers/GreeterVersion'
+            X-Greeter-Core-Version:
+              $ref: '#/components/headers/GreeterCoreVersion'
+            Retry-After:
+              $ref: '#/components/headers/RetryAfter'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnavailableError'
+components:
+  parameters:
+    IdempotencyKey:
+      name: Idempotency-Key
+      in: header
+      required: true
+      description: >-
+        Client-chosen key that makes the request safe to retry. Clients should
+        send a UUID. The service rejects only a missing or empty key.
+      schema:
+        type: string
+        minLength: 1
+    GreeterSynthetic:
+      name: X-Greeter-Synthetic
+      in: header
+      required: false
+      description: >-
+        Send "true" on monitoring traffic. The request is counted separately, so
+        it never changes a real guest's count, and the response is unchanged.
+      schema:
+        type: string
+  headers:
+    GreeterVersion:
+      required: true
+      description: The service version that produced the response, without a leading "v".
+      schema:
+        type: string
+    GreeterCoreVersion:
+      required: true
+      description: The greeter-core version bundled in the service.
+      schema:
+        type: string
+    RetryAfter:
+      required: true
+      description: Seconds to wait before retrying.
+      schema:
+        type: string
+  schemas:
+    GreetingRequest:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          description: The guest's name. It is trimmed and title-cased by the service.
+          examples: ['ada example']
+    Greeting:
+      type: object
+      additionalProperties: false
+      required: [guest_name, greeting, count, greeted_at]
+      properties:
+        guest_name:
+          type: string
+          description: The normalised guest name.
+          examples: [Ada Example]
+        greeting:
+          type: string
+          examples: [Hello, Ada Example!]
+        count:
+          type: [integer, 'null']
+          minimum: 1
+          description: >-
+            How many times this guest has been greeted. Null when the counter is
+            disabled (the service still greets, but does not count).
+        greeted_at:
+          type: string
+          format: date-time
+    # The six error bodies are written out in full, not composed with allOf:
+    # additionalProperties: false does not see properties declared in a sibling
+    # schema, so a shared base would reject its own `error` field.
+    BadRequestError:
+      type: object
+      additionalProperties: false
+      required: [error, message]
+      properties:
+        error:
+          type: string
+          enum: [missing_idempotency_key, malformed_request]
+        message:
+          type: string
+          description: A fixed, human-readable sentence. It never echoes the request.
+    ConflictError:
+      type: object
+      additionalProperties: false
+      required: [error, message]
+      properties:
+        error:
+          type: string
+          enum: [idempotency_key_reused]
+        message:
+          type: string
+          description: A fixed, human-readable sentence. It never echoes the request.
+    PayloadTooLargeError:
+      type: object
+      additionalProperties: false
+      required: [error, message]
+      properties:
+        error:
+          type: string
+          enum: [payload_too_large]
+        message:
+          type: string
+          description: A fixed, human-readable sentence. It never echoes the request.
+    InvalidNameError:
+      type: object
+      additionalProperties: false
+      required: [error, message]
+      properties:
+        error:
+          type: string
+          enum: [invalid_name]
+        message:
+          type: string
+          description: A fixed, human-readable sentence. It never echoes the request.
+    InternalError:
+      type: object
+      additionalProperties: false
+      required: [error, message]
+      properties:
+        error:
+          type: string
+          enum: [internal_error]
+        message:
+          type: string
+          description: A fixed, human-readable sentence. It never echoes the request.
+    UnavailableError:
+      type: object
+      additionalProperties: false
+      required: [error, message]
+      properties:
+        error:
+          type: string
+          enum: [temporarily_unavailable]
+        message:
+          type: string
+          description: A fixed, human-readable sentence. It never echoes the request.

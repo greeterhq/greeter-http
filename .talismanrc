@@ -1,8 +1,10 @@
 fileignoreconfig:
+- filename: .github/actionlint.yaml
+  checksum: d1b5ff1f231f742e1825e63723c4858614a343aafcec95567b92676794e2af34
 - filename: .github/workflows/cd.yml
   checksum: 8ec0e31e68e046b62e25f59dbc16ef4e0241c732106c09b4cc7a1530b5fdb386
 - filename: .github/workflows/ci.yml
-  checksum: b23e0c3c24231db8a1b5ad2b7558c854e1fbededbbe3295a6c614471fcdd945a
+  checksum: 59694f68f21853d163d83d4a7d49886acb35648fad986b915474a1c9fca6e62e
 - filename: spec/security/http_security_spec.rb
   checksum: 77ff48c901c3d0f87fdfaed914f441dad09b85427fe837ff9e2e3bd0fbbbbab2
 - filename: .kiro/prompts/opsx-continue.prompt.md
@@ -65,6 +67,8 @@ fileignoreconfig:
   checksum: c47854a93d461be8ceeb4f99d185ec7523b61623326e4d0742eed1d65d4100a5
 - filename: bin/iam-check
   checksum: 70c512b3f9e7a95e95c20ab0b0bf5c3d1b3eb61809e290fcbe1c809ad1a2f941
+- filename: bin/merge-repo-trace
+  checksum: ef8b10551906a443bfd904dac317ea4c0d7e492ba09c992276a66c6b4ecede04
 - filename: bin/smoke
   checksum: 276fcff752b4c39b7365f8e360f03fd76f239f830745c40e96fe0dabe9aaa327
 - filename: docs/observability.md
@@ -73,6 +77,8 @@ fileignoreconfig:
   checksum: ecada729a20d37c3c9d457b0bd8a62e96153f03f296138d9d07b9d03a0a691ca
 - filename: features/support/env.rb
   checksum: 8a53a245f11f6278c458910d947564839734d7236eb851e9e8299b76b0c92abb
+- filename: features/support/repo_trace.rb
+  checksum: 6791e1c32a52f74d148b824aee5c29631bd7ad46bf54f437e32072686680f475
 - filename: infra/cd-deploy-policy.md
   checksum: 806c075c7dff7ec7c7684fa2932b5157caf02ced78ccf3748d6bde10ca736b08
 - filename: infra/template.yaml
@@ -97,10 +103,16 @@ fileignoreconfig:
   checksum: b9119581f91b32b76e2e77b89f82c747baf828acc785ba61e6cdd98982dc9717
 - filename: lib/greeter_http/adapters/dynamodb_greeting_counter.rb
   checksum: b6cab31a5f53dcb0b04a36526d7bdcf8ac769ae4b0359f6d1ce5749ef5d83ea2
+- filename: openapi.yaml
+  checksum: e50267284e5741739dd306610ef1202a667eb284c8bd92b2384c5e30f279e71a
 - filename: spec/adapters/version_headers_spec.rb
   checksum: 20b01bdc7cc2903c5733439c35071cdc2f287b9ccc76b2e11db15d3c398d4d0c
 - filename: spec/bin/guard_test_edits_spec.rb
   checksum: 908a2a09ace38379f1273f2b03fc616bff41b26855ad1f86f7c6c018582cd284
+- filename: spec/support/repo_trace/document.rb
+  checksum: 3d303f5da57bdaafcf2f602c02281fb1134be03154fbdb6a45594c9dc20f1754
+- filename: spec/support/repo_trace_formatter.rb
+  checksum: cdbf6ea6b55a65e9be04cb928ac0bb9ee9a67ea5da0e5b3f40d324115b81502d
 - filename: spec/workflows/cd_workflow_spec.rb
   checksum: 5dd7ed384420cb4ec6918793852b4ecd8e8daedf858c7b751eff4e05e369f0d3  
   checksum: 3eaf093599f2b5fd2364f2d54e4a26d1bb01b6681634be796a5eee4a959d3ab4
@@ -109,7 +121,7 @@ fileignoreconfig:
 - filename: openspec/changes/adopt-live-docs/specs/api-description/spec.md
   checksum: d813156d36ab0b653ed1904139608c4ddb370c6c5593e8a600649339d60d89c3
 - filename: openspec/changes/adopt-live-docs/tasks.md
-  checksum: 2e6428daa4da4e924f221afbe4d3a43d86a1ce71756ab521231d44820eace622
+  checksum: c7f9005f1dea22b9099fec0a31c06b01f42191c6bc035f903a53cd1277bf42a6
 - filename: openspec/changes/adopt-live-docs/specs/live-docs-traceability/spec.md
   checksum: 74bef003c571601b0aabcd9e534152599815740b9698c422241194cf9505be31
 - filename: openspec/changes/adopt-live-docs/design.md
