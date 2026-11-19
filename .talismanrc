@@ -1,8 +1,10 @@
 fileignoreconfig:
+- filename: .github/actionlint.yaml
+  checksum: d1b5ff1f231f742e1825e63723c4858614a343aafcec95567b92676794e2af34
 - filename: .github/workflows/cd.yml
   checksum: 8ec0e31e68e046b62e25f59dbc16ef4e0241c732106c09b4cc7a1530b5fdb386
 - filename: .github/workflows/ci.yml
-  checksum: b23e0c3c24231db8a1b5ad2b7558c854e1fbededbbe3295a6c614471fcdd945a
+  checksum: 59694f68f21853d163d83d4a7d49886acb35648fad986b915474a1c9fca6e62e
 - filename: spec/security/http_security_spec.rb
   checksum: 77ff48c901c3d0f87fdfaed914f441dad09b85427fe837ff9e2e3bd0fbbbbab2
 - filename: .kiro/prompts/opsx-continue.prompt.md
@@ -58,13 +60,15 @@ fileignoreconfig:
 - filename: .rubocop.yml
   checksum: 105232f388caae629d30c624ba681ad5f6001e6e93ac558d39fb172da43989d5
 - filename: Gemfile.lock
-  checksum: feaebe740697fa631769ec6ffbc27db64d952c4b67da6ea63910994a8d53ff9b
+  checksum: 5ac7af2ef6fde4b40fa624ceb4d6ae48aab6a9219b3747fff7485e0f2f8bb1a2
 - filename: README.md
   checksum: 08304bd7e381920147b7319a4ea24828f698ce8cca9ea401a38f29e5b4af9f67
 - filename: env.json.example
   checksum: c47854a93d461be8ceeb4f99d185ec7523b61623326e4d0742eed1d65d4100a5
 - filename: bin/iam-check
   checksum: 70c512b3f9e7a95e95c20ab0b0bf5c3d1b3eb61809e290fcbe1c809ad1a2f941
+- filename: bin/merge-repo-trace
+  checksum: ef8b10551906a443bfd904dac317ea4c0d7e492ba09c992276a66c6b4ecede04
 - filename: bin/smoke
   checksum: 276fcff752b4c39b7365f8e360f03fd76f239f830745c40e96fe0dabe9aaa327
 - filename: docs/observability.md
@@ -73,6 +77,8 @@ fileignoreconfig:
   checksum: ecada729a20d37c3c9d457b0bd8a62e96153f03f296138d9d07b9d03a0a691ca
 - filename: features/support/env.rb
   checksum: 8a53a245f11f6278c458910d947564839734d7236eb851e9e8299b76b0c92abb
+- filename: features/support/repo_trace.rb
+  checksum: 6791e1c32a52f74d148b824aee5c29631bd7ad46bf54f437e32072686680f475
 - filename: infra/cd-deploy-policy.md
   checksum: 806c075c7dff7ec7c7684fa2932b5157caf02ced78ccf3748d6bde10ca736b08
 - filename: infra/template.yaml
@@ -97,15 +103,25 @@ fileignoreconfig:
   checksum: b9119581f91b32b76e2e77b89f82c747baf828acc785ba61e6cdd98982dc9717
 - filename: lib/greeter_http/adapters/dynamodb_greeting_counter.rb
   checksum: b6cab31a5f53dcb0b04a36526d7bdcf8ac769ae4b0359f6d1ce5749ef5d83ea2
+- filename: openapi.yaml
+  checksum: e50267284e5741739dd306610ef1202a667eb284c8bd92b2384c5e30f279e71a
 - filename: spec/adapters/version_headers_spec.rb
   checksum: 20b01bdc7cc2903c5733439c35071cdc2f287b9ccc76b2e11db15d3c398d4d0c
 - filename: spec/bin/guard_test_edits_spec.rb
   checksum: 908a2a09ace38379f1273f2b03fc616bff41b26855ad1f86f7c6c018582cd284
+- filename: spec/support/repo_trace/document.rb
+  checksum: 3d303f5da57bdaafcf2f602c02281fb1134be03154fbdb6a45594c9dc20f1754
+- filename: spec/support/repo_trace_formatter.rb
+  checksum: cdbf6ea6b55a65e9be04cb928ac0bb9ee9a67ea5da0e5b3f40d324115b81502d
 - filename: spec/workflows/cd_workflow_spec.rb
   checksum: 5dd7ed384420cb4ec6918793852b4ecd8e8daedf858c7b751eff4e05e369f0d3  
   checksum: 3eaf093599f2b5fd2364f2d54e4a26d1bb01b6681634be796a5eee4a959d3ab4
 - filename: openspec/config.yaml
   checksum: e3a1bcecd66c30e5fe2b977dca8604281de0ffc2b8133a1183a5aa6ba92790be
+- filename: openspec/specs/api-description/spec.md
+  checksum: c5f82267423e0fd46eb6b27990c3cc7eb1eb00cc6273e0350990a0792dee86ca
+- filename: openspec/specs/live-docs-traceability/spec.md
+  checksum: 42fc728fa9b0132f04cac4d1dce376517fddbecef482e90fed934327a84f3688
 - filename: openspec/specs/acceptance-gated-release/spec.md
   checksum: 99556ad417bc99782a3f622d2b5194aa1df113e31f373da9a10db5645e507af7  
 - filename: openspec/specs/greeting-counter/spec.md
@@ -156,6 +172,24 @@ fileignoreconfig:
   checksum: fcd6025463343f4c3cb5530d5d2bcf5bbcdda52ea3bea38e14a4e34a553f1feb
 - filename: spec/integration/dynamo_greeting_counter_spec.rb
   checksum: c0f254d295ad8200a06afd6b1502c210fb4e3270e8a06ae7f22c30b5f98fe943
+- filename: spec/tooling/cucumber_repo_trace_spec.rb
+  checksum: 5c9448afe70728c47b48c04ff115e81c08a8834dac811536873d4b2c1baba535
+- filename: spec/tooling/repo_trace_document_spec.rb
+  checksum: 135baa2058e21d46d2b387d7bcb2b27824988aed784d7381facc62a8732bb3ae
+- filename: spec/tooling/repo_trace_formatter_spec.rb
+  checksum: 32004b235e6f6e07b0f525fca7ce84ab9189bd74c60b6b0c4407511cb97045d8
+- filename: spec/fixtures/repo_trace/plain.rb
+  checksum: 75bf1868cf61066cae9c514536ba3498d5ee6c7df1b0425440e23324ab5dbf0c
+- filename: spec/fixtures/repo_trace/statuses.rb
+  checksum: 8d8214433092739591cf41b0fe2ff4d7c4e5b4560841f7e06c4007c36f76b5b0
+- filename: spec/bin/merge_repo_trace_spec.rb
+  checksum: 5e101827e6cef158b0a7c1f7a529d080e52339ee4eed285b37319553bf1b9953
+- filename: spec/openapi_description_spec.rb
+  checksum: d94eaa07a51b0d00fefd4d03b88671331e6eb498f16c8753e1ae15325a4a59d7
+- filename: spec/tooling/openapi_contract_spec.rb
+  checksum: 527675d61547ae7c659d1ca0bcc50e4b361f92316d58fc3ef307ecc1445a7a4c
+- filename: spec/workflows/ci_workflow_spec.rb
+  checksum: 2578fb1c2960483759351a72c7a621e27fa1a441dee76062d27d9b061ddf1252
 - filename: vendor/greeter-core-api.md
   checksum: c79b5e64749b38dd505bf24c307c895adc384be6f00b10739f544e26aa26beb8
 version: ""

@@ -1,0 +1,7 @@
+# Fixture for spec/openapi_description_spec.rb. Its info.version never equals
+# GreeterHttp::VERSION, so the version check must fail on it. Not a real description.
+openapi: 3.1.0
+info:
+  title: greeter-http fixture
+  version: 0.0.1
+paths: {}

@@ -2,6 +2,7 @@
 
 require 'spec_helper'
 require 'json'
+require 'open3'
 require 'securerandom'
 
 # HTTP-boundary security properties for the greeter service, exercised end to
@@ -194,6 +195,37 @@ RSpec.describe 'HTTP security properties' do
     it 'accepts a normal small body' do
       response = handler.call(event: event_for(name: 'alice bonsu'))
       expect(response['statusCode']).to eq(201)
+    end
+  end
+
+  # openapi_first validates responses in tests only. A test-only gem in the
+  # Lambda bundle would enlarge the deployed function's attack surface (S10).
+  # The release job has the matching check on the built bundle (ci_workflow_spec).
+  describe 'the Lambda bundle stays free of the test gem',
+           requirement: 'every-response-of-the-composed-app-matches-openapi-yaml',
+           scenario: 'the-lambda-bundle-stays-free-of-the-test-gem' do
+    let(:repo_root) { File.expand_path('../..', __dir__) }
+
+    it 'finds no openapi_first in lib, exe or infra', :aggregate_failures do
+      output, status = Open3.capture2e('git', 'grep', '-n', 'openapi_first', '--', 'lib', 'exe', 'infra',
+                                       chdir: repo_root)
+
+      expect(output).to eq('')
+      expect(status.exitstatus).to eq(1) # git grep exits 1 when nothing matches
+    end
+
+    it 'declares openapi_first in the Gemfile only in the :test group', :aggregate_failures do
+      lines = File.readlines(File.join(repo_root, 'Gemfile'), chomp: true)
+      declarations = lines.each_index.select { |index| lines[index].match?(/\A\s*gem\s+['"]openapi_first['"]/) }
+
+      expect(declarations).not_to be_empty
+      declarations.each do |index|
+        in_test_block = lines.first(index).reverse.find { |line| line.match?(/\A\s*(group\s|end\b)/) }
+                             .to_s.match?(/\A\s*group\s+:test\s+do/)
+        inline_test_group = lines[index].match?(/group:\s*:test\b|groups:\s*\[\s*:test\s*\]/)
+
+        expect(in_test_block || inline_test_group).to be(true), "line #{index + 1} is not test-only"
+      end
     end
   end
 

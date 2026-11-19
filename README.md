@@ -156,6 +156,49 @@ docker run --rm -d --name ddb-local -p 8000:8000 \
 DYNAMODB_ENDPOINT=http://localhost:8000 bundle exec rspec spec/integration
 ```
 
+### Traceability files
+
+Every RSpec example and Cucumber scenario tagged `@requirement-<slug>` is
+recorded in a trace file. RSpec writes it through `RepoTraceFormatter`
+(`--format RepoTraceFormatter`; `.rspec` loads the formatter) and Cucumber
+through `RepoTraceCucumber`. Each run writes its own file, then
+`bin/merge-repo-trace` combines them:
+
+```bash
+bin/merge-repo-trace tmp/repo-trace.json tmp/repo-trace-spec.json tmp/repo-trace-bdd.json
+```
+
+CI uploads the merged `repo-trace.json` as the `repo-trace` artifact. The files
+hold tags and outcomes only, never request or response bodies.
+
+A requirement slug is the OpenSpec heading lowercased, with every run of
+non-alphanumerics replaced by one `-`, and leading and trailing `-` removed.
+For example, `Idempotent replay` becomes `idempotent-replay`.
+
+### Response validation
+
+`.rspec` loads `spec/support/openapi_contract.rb`, which wraps the Rack app in
+`OpenapiContract::Checked`. Every response produced in specs and features is
+validated against `openapi.yaml`. A mismatch fails the example with
+`<METHOD> <path> status <status>: <reason>`.
+
+## OpenAPI
+
+`openapi.yaml` at the repo root describes the HTTP API. It is written by hand
+and validated against the running app, not generated from code (see
+`docs/adr/0002-openapi-authored-and-validated-not-generated.md`). Its
+`info.version` must equal `GreeterHttp::VERSION`; the suite fails when they
+differ.
+
+Pull requests are checked by the `api-diff` job in `.github/workflows/ci.yml`.
+It compares `openapi.yaml` with the one on the base branch using oasdiff and
+fails on breaking changes. When the base branch has no `openapi.yaml` yet, the
+oasdiff step is skipped. On release, `openapi.yaml` is copied into the release
+tarball. `openapi_first` is a dev and test dependency and is not bundled into
+the Lambda.
+
+Architecture decision records live in `docs/adr/`.
+
 ## Performance benchmarks
 
 `perf/http_bench.rb` has two regimes. The in-process one needs only Ruby; the
@@ -516,7 +559,10 @@ GREETER_BASE_URL="$API_BASE_URL" bundle exec cucumber --tags @smoke
   only composed.
 - Specs and features map to the spec in
   `openspec/changes/.../specs/greeting-counter/spec.md`; each OpenSpec scenario
-  has one `@requirement-greeting-counter` Cucumber scenario.
+  has one Cucumber scenario or RSpec example. The old feature-level
+  `@requirement-greeting-counter` tag was removed from
+  `features/greeting_counter.feature`; each scenario now carries its own
+  `@requirement-<slug>` and `@scenario-<slug>` tags.
 - Collaborators are injected via keyword arguments; `app.rb` is the only
   composition root.
 
@@ -561,8 +607,9 @@ The service version lives in `lib/greeter_http/version.rb` as
 `GreeterHttp::VERSION` (surfaced in the startup banner) and **must match the
 release tag** — the release job fails fast if they disagree.
 
-1. Bump `GreeterHttp::VERSION` in `lib/greeter_http/version.rb` to the version
-   you intend to tag; commit it.
+1. Bump `GreeterHttp::VERSION` in `lib/greeter_http/version.rb` and
+   `info.version` in `openapi.yaml` to the same version you intend to tag;
+   commit both.
 2. Make sure `main` is green: push and confirm the CI run passes end to end
    (the release job is skipped on non-tag builds — that's expected).
 3. Tag with a **`v` prefix** matching the constant, and push the tag:

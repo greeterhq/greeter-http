@@ -39,16 +39,29 @@ name: CI
     tags: ["v*"]
   pull_request:
     branches: ["**"]
+  # Weekly run, so the published repo trace (see `functional` and `notify-docs`)
+  # stays fresh when nothing is pushed. It creates no release or deployment:
+  # `release` needs a v* tag ref and cd.yml only follows the deploy-release dispatch.
+  schedule:
+    - cron: '17 6 * * 1'
   # Fired by greeter-core's release workflow. Handled ONLY by the bump-core job
   # below (every validation job is guarded off this event). Opens a lockfile
   # bump PR; it does not run the test suite or release.
   repository_dispatch:
     types: [greeter-core-released]
 
-# Cancel in-flight runs for the same ref so a fast-follow push doesn't queue.
+# A superseded pull request run is cancelled so a fast-follow push doesn't queue.
+# A run on main, a weekly run and a dispatch run are never cancelled, so they
+# always finish and publish. The event name is in the group so a pull request run
+# and a push run for the same ref don't cancel each other.
 concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  group: ci-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+# Read-only by default. Only `release` (contents: write) and `bump-core`
+# (contents: write, pull-requests: write) grant more, and `notify-docs` grants none.
+permissions:
+  contents: read
 
 env:
   BUNDLE_JOBS: 4
@@ -200,11 +213,19 @@ jobs:
         run: mkdir -p coverage tmp
 
       - name: RSpec (unit + security; :integration excluded)
-        run: bundle exec rspec --format progress --format html --out coverage/rspec.html
+        env:
+          REPO_TRACE_PATH: tmp/repo-trace-spec.json
+        run: bundle exec rspec --format progress --format html --out coverage/rspec.html --format RepoTraceFormatter
 
       # @smoke scenarios are skipped automatically (GREETER_BASE_URL unset).
       - name: Cucumber BDD
+        env:
+          REPO_TRACE_PATH: tmp/repo-trace-bdd.json
         run: bundle exec cucumber --format progress
+
+      # Runs on every event, so a malformed trace fails pull requests too.
+      - name: Merge repo traces
+        run: bin/merge-repo-trace tmp/repo-trace.json tmp/repo-trace-spec.json tmp/repo-trace-bdd.json
 
       - name: Start DynamoDB Local (-sharedDb)
         run: |
@@ -224,6 +245,18 @@ jobs:
           AWS_REGION: us-east-1
         run: bundle exec rspec spec/integration --format progress
 
+      # Publish only from main and the weekly run, and only when every step above
+      # passed (no status-check function, so the default success() applies): a red
+      # run uploads nothing and, through `needs`, sends no dispatch.
+      - name: Upload repo trace
+        if: github.event_name == 'schedule' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+        uses: actions/upload-artifact@v6
+        with:
+          name: repo-trace
+          path: tmp/repo-trace.json
+          retention-days: 90
+          if-no-files-found: error
+
       - name: Stop DynamoDB Local
         if: always()
         run: docker rm -f ddb-local || true
@@ -236,13 +269,81 @@ jobs:
           path: coverage/
           retention-days: 14
 
-      - name: Upload traceability report
-        if: always()
-        uses: actions/upload-artifact@v6
+# ═════════════════════════════════════════════════════════════════════════════
+# notify-docs  (main pushes and the weekly run only, after a green `functional`)
+#
+# Tells greeter-docs to refresh. The job has no GITHUB_TOKEN permissions at all;
+# its only credential is a GitHub App token minted here, scoped to the one
+# repository it dispatches to and to the one permission a repository dispatch
+# needs. The token reaches `gh` only as GH_TOKEN, and no expression is
+# interpolated into the script.
+# ═════════════════════════════════════════════════════════════════════════════
+  notify-docs:
+    name: Notify docs
+    needs: functional
+    if: github.event_name == 'schedule' || (github.event_name == 'push' && github.ref == 'refs/heads/main')
+    runs-on: ubuntu-latest
+    permissions: {}
+
+    steps:
+      - name: Mint a token for greeter-docs
+        id: app-token
+        uses: actions/create-github-app-token@v3
         with:
-          name: traceability-report
-          path: tmp/traceability.json
-          retention-days: 14
+          client-id: ${{ vars.DISPATCH_APP_CLIENT_ID }}
+          private-key: ${{ secrets.DISPATCH_APP_PRIVATE_KEY }}
+          owner: greeterhq
+          repositories: greeter-docs
+          permission-contents: write
+
+      - name: Send docs-refresh to greeter-docs
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          gh api repos/greeterhq/greeter-docs/dispatches \
+            -f event_type=docs-refresh \
+            -f 'client_payload[repo]=greeter-http'
+
+# ═════════════════════════════════════════════════════════════════════════════
+# api-diff  (pull requests only)
+#
+# Fails the pull request when it makes a breaking change to openapi.yaml, by
+# comparing it with the base branch's copy. The comparison is skipped only when
+# the base branch has no openapi.yaml (the pull request that first adds it).
+# review: false keeps the description off oasdiff.com.
+# ═════════════════════════════════════════════════════════════════════════════
+  api-diff:
+    name: OpenAPI diff
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Does the base branch have openapi.yaml?
+        id: base
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          if git cat-file -e "origin/${BASE_REF}:openapi.yaml"; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Fail on breaking changes
+        if: steps.base.outputs.present == 'true'
+        uses: oasdiff/oasdiff-action/breaking@v0
+        with:
+          base: 'origin/${{ github.base_ref }}:openapi.yaml'
+          revision: 'HEAD:openapi.yaml'
+          fail-on: ERR
+          review: false
 
 # ═════════════════════════════════════════════════════════════════════════════
 # spec-gate  (OpenSpec structural validation — blocks merge if malformed)
@@ -312,6 +413,15 @@ jobs:
       - name: Build the Lambda artifact
         run: sam build -t infra/template.yaml
 
+      # openapi_first validates responses in tests only. It must never be in the
+      # deployed function (ADR 0002), so fail the release if it got into the build.
+      - name: Check the Lambda bundle has no test gem
+        run: |
+          if find .aws-sam/build -type d -name 'openapi_first-*' | grep -q .; then
+            echo "::error::openapi_first is a test-group gem and must not be in .aws-sam/build"
+            exit 1
+          fi
+
       # Record the greeter-core version this build resolved to (from the lock,
       # the authoritative source) for the release notes.
       - name: Resolve bundled greeter-core version
@@ -334,6 +444,9 @@ jobs:
           mkdir -p "dist/${pkg}/.aws-sam"
           cp -r .aws-sam/build "dist/${pkg}/.aws-sam/build"
           cp README.md "dist/${pkg}/" 2>/dev/null || true
+          # The description of the tagged commit travels with the release, so later
+          # jobs and consumers use the released description.
+          cp openapi.yaml "dist/${pkg}/openapi.yaml"
           tar -czf "dist/${pkg}.tar.gz" -C dist "${pkg}"
           ( cd dist && sha256sum "${pkg}.tar.gz" > "${pkg}.tar.gz.sha256" )
           ls -lR "dist/${pkg}"
