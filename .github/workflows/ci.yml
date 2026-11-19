@@ -406,9 +406,25 @@ jobs:
             exit 1
           fi
 
+      # Record the greeter-core version this build resolves to (from the lock,
+      # the authoritative source) for the release notes. Runs before the CI
+      # bundle is removed, because it needs bundle exec.
+      - name: Resolve bundled greeter-core version
+        id: core
+        run: |
+          core_version="$(bundle exec ruby -e 'require "greeter/core"; print Greeter::Core::VERSION')"
+          echo "version=${core_version}" >> "$GITHUB_OUTPUT"
+
       - uses: aws-actions/setup-sam@v2
         with:
           use-installer: true
+
+      # setup-ruby's bundler-cache installs every Gemfile group into
+      # ./vendor/bundle, and sam build copies the source tree into the build, so
+      # dev and test gems would ship to Lambda. Remove the CI bundle and its
+      # config so sam build vendors runtime gems only. No bundle exec after this.
+      - name: Remove the CI bundle so sam build vendors runtime gems only
+        run: rm -rf vendor/bundle .bundle
 
       - name: Build the Lambda artifact
         run: sam build -t infra/template.yaml
@@ -421,14 +437,6 @@ jobs:
             echo "::error::openapi_first is a test-group gem and must not be in .aws-sam/build"
             exit 1
           fi
-
-      # Record the greeter-core version this build resolved to (from the lock,
-      # the authoritative source) for the release notes.
-      - name: Resolve bundled greeter-core version
-        id: core
-        run: |
-          core_version="$(bundle exec ruby -e 'require "greeter/core"; print Greeter::Core::VERSION')"
-          echo "version=${core_version}" >> "$GITHUB_OUTPUT"
 
       - name: Package versioned Lambda artifact
         run: |

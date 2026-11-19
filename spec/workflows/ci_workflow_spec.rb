@@ -355,5 +355,19 @@ RSpec.describe 'ci.yml contract' do
       expect(build_index).not_to be_nil
       expect(check['run']).to include('.aws-sam/build', 'openapi_first-', 'exit 1')
     end
+
+    # setup-ruby's bundler-cache installs every group into ./vendor/bundle, and
+    # sam build copies the source tree, so the CI bundle must be gone first.
+    it 'removes the CI bundle before sam build, after every bundle exec step', :aggregate_failures do
+      steps = job_steps('release')
+      build_index = steps.index { |step| step['run'].to_s.include?('sam build') }
+      removal_index = steps.index { |step| step['run'].to_s.match?(%r{rm -rf vendor/bundle \.bundle}) }
+      last_exec_index = steps.rindex { |step| step['run'].to_s.include?('bundle exec') }
+
+      expect(removal_index).not_to be_nil
+      expect(build_index).not_to be_nil
+      expect(removal_index).to be < build_index
+      expect(last_exec_index).to be < removal_index
+    end
   end
 end
