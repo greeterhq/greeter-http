@@ -212,4 +212,6 @@ fileignoreconfig:
   checksum: 2578fb1c2960483759351a72c7a621e27fa1a441dee76062d27d9b061ddf1252
 - filename: vendor/greeter-core-api.md
   checksum: c79b5e64749b38dd505bf24c307c895adc384be6f00b10739f544e26aa26beb8
+- filename: .github/workflows/smoke-prod.yml
+  checksum: 9a00829b44539bfa1813e02a2e90da6aa6e0246d6d7254d82995f41ec23169c3
 version: ""

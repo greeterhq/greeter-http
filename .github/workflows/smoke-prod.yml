@@ -1,0 +1,74 @@
+# .github/workflows/smoke-prod.yml
+#
+# The only producer of prod smoke evidence. Runs the @smoke Cucumber scenarios
+# against prod, fails unless the trace records the version-headers requirement
+# as passed, and then uploads the trace as artifact repo-trace-smoke-prod for
+# greeter-docs. ci.yml skips @smoke (no GREETER_BASE_URL there), so without
+# this workflow greeter-docs never sees "Deployed stage exposes version
+# headers" pass.
+#
+# Triggers: daily at 06:17 UTC, on demand, and after every CD run that
+# succeeded (the job condition drops failed or cancelled CD runs).
+#
+# Checkout has no ref: it checks out GITHUB_SHA, which is the sha the trace
+# writer records, so the tested code and the recorded sha always agree.
+# `ref: main` could move between trigger and checkout, and CD runs on
+# repository_dispatch, so its workflow_run head_sha is main at dispatch time,
+# not the release tag.
+#
+# GREETER_BASE_URL is committed. It is a public API Gateway endpoint (no
+# credentials), so this workflow needs no secrets or variables. It is the same
+# value as environments.prod.channels.http.base_url in greeter-acceptance's
+# config/environments.yml; if the prod stage is recreated, change both
+# together. A stale URL fails the smoke loudly and nothing is uploaded.
+#
+# No secrets, no variables, no AWS steps, and a read-only token.
+name: Smoke prod
+"on":
+  schedule:
+    - cron: '17 6 * * *'
+  workflow_dispatch:
+  workflow_run:
+    workflows: [CD]
+    types: [completed]
+permissions:
+  contents: read
+env:
+  GREETER_BASE_URL: https://dhsuw1brrc.execute-api.eu-west-2.amazonaws.com
+  # Keep in sync with ci.yml.
+  RUBY_VERSION: "3.3"
+  BUNDLER_VERSION: "4.0.22"
+jobs:
+  smoke-prod:
+    name: Smoke prod and publish trace
+    # The main guard stops honest manual runs from a branch from publishing
+    # evidence. A branch can edit its own copy of this file, so greeter-docs
+    # must still accept the artifact only from runs on main of this workflow.
+    if: github.ref == 'refs/heads/main' && (github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: ${{ env.RUBY_VERSION }}
+          bundler: ${{ env.BUNDLER_VERSION }}
+          bundler-cache: true
+      - name: Cucumber smoke against prod
+        env:
+          REPO_TRACE_PATH: tmp/repo-trace-smoke-prod.json
+        run: bundle exec cucumber --tags @smoke --format progress
+      # A skipped scenario (or no trace entry) can still exit 0 above; fail here
+      # so a silent skip never uploads evidence.
+      - name: Require a passed version-headers result
+        run: |
+          jq -e '[.results[] | select(.requirement == "deployed-stage-exposes-version-headers" and .status == "passed")] | length > 0' tmp/repo-trace-smoke-prod.json
+      # No `if:`, so the default success() applies: a red run uploads nothing.
+      - name: Upload prod smoke trace
+        uses: actions/upload-artifact@v6
+        with:
+          name: repo-trace-smoke-prod
+          path: tmp/repo-trace-smoke-prod.json
+          retention-days: 90
+          if-no-files-found: error
