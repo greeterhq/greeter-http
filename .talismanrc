@@ -143,7 +143,7 @@ fileignoreconfig:
 - filename: openspec/changes/publish-prod-smoke-trace/proposal.md
   checksum: f37db0467e7f417f6895990f16d8b7bd46fc2274891497b71fc9f5a66189d8f1
 - filename: openspec/changes/publish-prod-smoke-trace/tasks.md
-  checksum: d4aed55e3d90d3488dec3555f89d15b72c85b45f9f7c25953dd4226488398d7a
+  checksum: ebe2ffbba10b9facc56d48b00b8477028bb4bf8f8e99bab5240f21306b71b36a
 - filename: spec/workflows/smoke_prod_workflow_spec.rb
   checksum: c31391ef090c541c925c7ca072324bbabfbf70d08bceeba3dbc78e5dfe87f8ea
 - filename: openspec/changes/publish-prod-smoke-trace/design.md

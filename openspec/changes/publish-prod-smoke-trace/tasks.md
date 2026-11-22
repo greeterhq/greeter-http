@@ -34,7 +34,9 @@ The maintainer runs `tests-open` before this group and `tests-close` after 1.3.
 ## 3. Verify and docs
 
 - [x] 3.1 Run `bundle exec rspec` and `bundle exec cucumber` (smoke skipped locally). Both pass, and `spec/trace_check_spec.rb` reports the new requirement as covered.
-- [ ] 3.2 Locally, run `GREETER_BASE_URL=https://dhsuw1brrc.execute-api.eu-west-2.amazonaws.com REPO_TRACE_PATH=tmp/repo-trace-smoke-prod.json bundle exec cucumber --tags @smoke --format progress`, then run the D3 `jq -e` command. Confirm that it exits 0. Run the jq command against a trace from a run without `GREETER_BASE_URL` and confirm that it exits 1.
+- [x] 3.2 Locally, run `GREETER_BASE_URL=https://dhsuw1brrc.execute-api.eu-west-2.amazonaws.com REPO_TRACE_PATH=tmp/repo-trace-smoke-prod.json bundle exec cucumber --tags @smoke --format progress`, then run the D3 `jq -e` command. Confirm that it exits 0. Run the jq command against a trace from a run without `GREETER_BASE_URL` and confirm that it exits 1.
+  - With the URL (`REPO_TRACE_PATH=tmp/smoke-pass.json`): 6 scenarios (6 passed), cucumber exit 0; jq printed `true`, exit 0; the version-headers result is `passed` at `features/version_headers.feature:7`.
+  - Without the URL (`REPO_TRACE_PATH=tmp/smoke-skip.json`): 6 scenarios (6 skipped), cucumber exit 0; jq printed `false`, exit 1; the version-headers result is `skipped`. Cucumber exits 0 on a full skip, so the jq step is what fails a silent skip (design D3).
 - [x] 3.3 Run `bundle exec rubocop`, `actionlint`, `sam validate -t infra/template.yaml` and `openspec validate --all --strict`. All pass.
 - [x] 3.4 Update `README.md` Testing section: the `smoke-prod` workflow, its triggers, the `repo-trace-smoke-prod` artifact, and that its URL must change together with greeter-acceptance's `config/environments.yml`.
 - [ ] 3.5 After merge, start `smoke-prod` with `workflow_dispatch` on `main`. Confirm that the run is green and the `repo-trace-smoke-prod` artifact contains `deployed-stage-exposes-version-headers` with status `passed`. Record the run URL here.
