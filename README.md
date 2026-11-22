@@ -171,6 +171,17 @@ bin/merge-repo-trace tmp/repo-trace.json tmp/repo-trace-spec.json tmp/repo-trace
 CI uploads the merged `repo-trace.json` as the `repo-trace` artifact. The files
 hold tags and outcomes only, never request or response bodies.
 
+CI skips the `@smoke` scenarios, so the requirement "Deployed stage exposes
+version headers" only passes in the `smoke-prod` workflow
+(`.github/workflows/smoke-prod.yml`). It runs daily at 06:17 UTC, on demand, and
+after every successful CD run, always on `main`. It runs
+`bundle exec cucumber --tags @smoke` against prod and fails unless the trace
+records that requirement as `passed`. Only then does it upload the trace as the
+`repo-trace-smoke-prod` artifact (90 days). Its `GREETER_BASE_URL` is committed
+in the workflow and must match `environments.prod.channels.http.base_url` in
+greeter-acceptance's `config/environments.yml`. If the prod stage is recreated,
+change both together.
+
 A requirement slug is the OpenSpec heading lowercased, with every run of
 non-alphanumerics replaced by one `-`, and leading and trailing `-` removed.
 For example, `Idempotent replay` becomes `idempotent-replay`.
