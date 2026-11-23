@@ -131,7 +131,7 @@ fileignoreconfig:
 - filename: openspec/specs/api-description/spec.md
   checksum: c5f82267423e0fd46eb6b27990c3cc7eb1eb00cc6273e0350990a0792dee86ca
 - filename: openspec/specs/live-docs-traceability/spec.md
-  checksum: 42fc728fa9b0132f04cac4d1dce376517fddbecef482e90fed934327a84f3688
+  checksum: 92c8bd084c207649e4b1c3341c70fc005390802f4228cba80994156bf3f2a8fc
 - filename: openspec/specs/acceptance-gated-release/spec.md
   checksum: 99556ad417bc99782a3f622d2b5194aa1df113e31f373da9a10db5645e507af7  
 - filename: openspec/specs/greeting-counter/spec.md

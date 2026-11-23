@@ -39,4 +39,5 @@ The maintainer runs `tests-open` before this group and `tests-close` after 1.3.
   - Without the URL (`REPO_TRACE_PATH=tmp/smoke-skip.json`): 6 scenarios (6 skipped), cucumber exit 0; jq printed `false`, exit 1; the version-headers result is `skipped`. Cucumber exits 0 on a full skip, so the jq step is what fails a silent skip (design D3).
 - [x] 3.3 Run `bundle exec rubocop`, `actionlint`, `sam validate -t infra/template.yaml` and `openspec validate --all --strict`. All pass.
 - [x] 3.4 Update `README.md` Testing section: the `smoke-prod` workflow, its triggers, the `repo-trace-smoke-prod` artifact, and that its URL must change together with greeter-acceptance's `config/environments.yml`.
-- [ ] 3.5 After merge, start `smoke-prod` with `workflow_dispatch` on `main`. Confirm that the run is green and the `repo-trace-smoke-prod` artifact contains `deployed-stage-exposes-version-headers` with status `passed`. Record the run URL here.
+- [x] 3.5 After merge, start `smoke-prod` with `workflow_dispatch` on `main`. Confirm that the run is green and the `repo-trace-smoke-prod` artifact contains `deployed-stage-exposes-version-headers` with status `passed`. Record the run URL here.
+  - Passed, as reported by the maintainer: https://github.com/greeterhq/greeter-http/actions/runs/45088245869 (`main`, `e03ac08`, artifact `repo-trace-smoke-prod` not expired).
