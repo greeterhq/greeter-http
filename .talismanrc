@@ -116,16 +116,6 @@ fileignoreconfig:
 - filename: spec/workflows/cd_workflow_spec.rb
   checksum: 5dd7ed384420cb4ec6918793852b4ecd8e8daedf858c7b751eff4e05e369f0d3  
   checksum: 3eaf093599f2b5fd2364f2d54e4a26d1bb01b6681634be796a5eee4a959d3ab4
-- filename: openspec/changes/adopt-live-docs/proposal.md
-  checksum: 7e373e99da6984d288096fab5be1bfc917a97f56edc9e1758f1564db391f2b39
-- filename: openspec/changes/adopt-live-docs/specs/api-description/spec.md
-  checksum: d813156d36ab0b653ed1904139608c4ddb370c6c5593e8a600649339d60d89c3
-- filename: openspec/changes/adopt-live-docs/tasks.md
-  checksum: 6f45525c3f131fd2bb4df2b5cd658cc899eb63c66d7ab8d39e150c3356392638
-- filename: openspec/changes/adopt-live-docs/specs/live-docs-traceability/spec.md
-  checksum: 74bef003c571601b0aabcd9e534152599815740b9698c422241194cf9505be31
-- filename: openspec/changes/adopt-live-docs/design.md
-  checksum: 25bd6ffdbb9fba95cc1d2029f023ea4d44a6245de656bf450d4e23924eaa70ca
 - filename: openspec/config.yaml
   checksum: e3a1bcecd66c30e5fe2b977dca8604281de0ffc2b8133a1183a5aa6ba92790be
 - filename: openspec/specs/api-description/spec.md
@@ -138,16 +128,8 @@ fileignoreconfig:
   checksum: 6f96e629eca6fc135e9dd6ba0f1bf247ca52b07dee832acb1ec17a36bffcd4b9
 - filename: openspec/specs/version-headers/spec.md
   checksum: 89741717be026b623707137c25f68faf92a264e7cf73ff1ed981563e9f02a10c
-- filename: openspec/changes/publish-prod-smoke-trace/specs/live-docs-traceability/spec.md
-  checksum: eae962edea617999e3cdeb2ba980ae2a97dc2f837ad52c93839e850a69da017a
-- filename: openspec/changes/publish-prod-smoke-trace/proposal.md
-  checksum: f37db0467e7f417f6895990f16d8b7bd46fc2274891497b71fc9f5a66189d8f1
-- filename: openspec/changes/publish-prod-smoke-trace/tasks.md
-  checksum: ebe2ffbba10b9facc56d48b00b8477028bb4bf8f8e99bab5240f21306b71b36a
 - filename: spec/workflows/smoke_prod_workflow_spec.rb
   checksum: c31391ef090c541c925c7ca072324bbabfbf70d08bceeba3dbc78e5dfe87f8ea
-- filename: openspec/changes/publish-prod-smoke-trace/design.md
-  checksum: 514842720d31f220c6546af92cf0128c7c84c3c1d560403a0964cc87d44b03d8
 - filename: perf/http_bench.rb
   checksum: fb6fe61e814be384a6d52c6d22e2b99eb692053d80343d45b4608013785af93a
 - filename: perf/load.rb
