@@ -27,6 +27,8 @@ module GreeterHttp
     # which is accounted SEPARATELY as "throttled" (expected backpressure), not
     # as a hard failure — only 5xx, connection errors, and non-429 4xx fail.
     #
+    # Every request sends X-Greeter-Synthetic: true, so load traffic stays out of real guest counts.
+    #
     # Only Ruby stdlib is used (net/http) — no k6 binary required. A k6 script
     # would be a drop-in alternative if preferred in CI.
     module Load
@@ -147,6 +149,7 @@ module GreeterHttp
         req = Net::HTTP::Post.new(uri)
         req['Content-Type'] = 'application/json'
         req['Idempotency-Key'] = SecureRandom.uuid
+        req['X-Greeter-Synthetic'] = 'true'
         req.body = JSON.generate('name' => guest)
         resp = http.request(req)
         return :ok if %w[200 201].include?(resp.code) # 201 created / 200 replay

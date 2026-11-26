@@ -114,11 +114,19 @@ tagged `x-greeter-synthetic: true` so its traffic is isolated (see below).
 
 ## Synthetic traffic
 
-The canary sends `x-greeter-synthetic: true`. The service then:
+These senders mark every request with `X-Greeter-Synthetic: true`:
+
+- the Synthetics canary in `infra/template.yaml`;
+- the post-deploy smoke checks: `bin/smoke`, which CD runs after each deploy and
+  restore, and the `@smoke` Cucumber steps;
+- the deployed load test, `perf/load.rb`, which `perf/http_bench.rb` runs when
+  `GREETER_BASE_URL` is set.
+
+For these requests the service:
 
 - tags the log line `synthetic = true` (filter it out of user dashboards), and
-- records its greeting counts under a `synthetic#` key prefix in DynamoDB, so
-  canary greetings never inflate real per-guest counts.
+- records their greeting counts under a `synthetic#` key prefix in DynamoDB, so
+  synthetic greetings never inflate real per-guest counts.
 
 ## Which version is deployed?
 
