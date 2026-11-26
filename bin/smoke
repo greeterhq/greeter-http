@@ -10,6 +10,9 @@
 #      INCREMENTS when the same guest is greeted again with a new key.
 #   2. A malformed request is rejected with HTTP 400.
 #
+# Every request sends X-Greeter-Synthetic: true, so smoke greetings are kept out
+# of real guest counts and real-user log views.
+#
 # This is a LIVENESS + CORRECTNESS gate, not a latency gate. The latency SLO is
 # owned by perf/http_bench.rb, which measures steady-state p95 under concurrent
 # load with cold start excluded and regression-checks it against a baseline. A
@@ -45,6 +48,7 @@ def post(name: nil, key: SecureRandom.uuid, raw_body: nil)
   req = Net::HTTP::Post.new(ENDPOINT)
   req['Content-Type'] = 'application/json'
   req['Idempotency-Key'] = key
+  req['X-Greeter-Synthetic'] = 'true'
   req.body = raw_body || JSON.generate('name' => name)
   http.request(req)
 end
