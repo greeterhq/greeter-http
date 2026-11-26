@@ -114,8 +114,9 @@ fileignoreconfig:
 - filename: spec/support/repo_trace_formatter.rb
   checksum: cdbf6ea6b55a65e9be04cb928ac0bb9ee9a67ea5da0e5b3f40d324115b81502d
 - filename: spec/workflows/cd_workflow_spec.rb
-  checksum: 5dd7ed384420cb4ec6918793852b4ecd8e8daedf858c7b751eff4e05e369f0d3  
   checksum: 3eaf093599f2b5fd2364f2d54e4a26d1bb01b6681634be796a5eee4a959d3ab4
+- filename: openspec/changes/mark-smoke-and-load-traffic-synthetic/tasks.md
+  checksum: c93c9f6d83adf2db85993c5815d1939f6abceef773bf0405655e99bac6318e39
 - filename: openspec/config.yaml
   checksum: e3a1bcecd66c30e5fe2b977dca8604281de0ffc2b8133a1183a5aa6ba92790be
 - filename: openspec/specs/api-description/spec.md
