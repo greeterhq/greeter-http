@@ -116,7 +116,7 @@ fileignoreconfig:
 - filename: spec/workflows/cd_workflow_spec.rb
   checksum: 3eaf093599f2b5fd2364f2d54e4a26d1bb01b6681634be796a5eee4a959d3ab4
 - filename: openspec/changes/mark-smoke-and-load-traffic-synthetic/tasks.md
-  checksum: 98349b637c6ccaddd0d106c1bfbcf12be8700fae00b6ff3773e05b3f46e13957
+  checksum: d2b97668fb405c459f938a54d90be25b6a7c2f7a7bab05e798f2290085e859da
 - filename: openspec/config.yaml
   checksum: e3a1bcecd66c30e5fe2b977dca8604281de0ffc2b8133a1183a5aa6ba92790be
 - filename: openspec/specs/api-description/spec.md

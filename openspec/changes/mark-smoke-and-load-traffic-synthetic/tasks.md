@@ -20,9 +20,9 @@ The maintainer runs `tests-open` before this group and `tests-close` after 1.5.
 
 ## 3. Verify and docs
 
-- [ ] 3.1 Update the "Synthetic traffic" section of `docs/observability.md` to list three senders of the header: the canary, `bin/smoke` and the `@smoke` Cucumber steps, and the deployed load test in `perf/`. Verify: `spec/docs/adr_spec.rb` and any docs specs still pass.
-- [ ] 3.2 Run `bundle exec rspec` and `bundle exec cucumber` (smoke scenarios skip locally). Both pass, and `spec/trace_check_spec.rb` reports the new requirement as covered.
-- [ ] 3.3 Run `bundle exec rubocop`, `sam validate -t infra/template.yaml` and `openspec validate --all --strict`. All pass.
+- [x] 3.1 Update the "Synthetic traffic" section of `docs/observability.md` to list three senders of the header: the canary, `bin/smoke` and the `@smoke` Cucumber steps, and the deployed load test in `perf/`. Verify: `spec/docs/adr_spec.rb` and any docs specs still pass.
+- [x] 3.2 Run `bundle exec rspec` and `bundle exec cucumber` (smoke scenarios skip locally). Both pass, and `spec/trace_check_spec.rb` reports the new requirement as covered.
+- [x] 3.3 Run `bundle exec rubocop`, `sam validate -t infra/template.yaml` and `openspec validate --all --strict`. All pass.
 - [ ] 3.4 Against dev, run `GREETER_BASE_URL=<dev ApiBaseUrl> bin/smoke`. Then, with read access to the dev table, look up the run's guest under its normalised (title-cased) name. Confirm that a `synthetic#GUEST#<name>` counter item exists and that no `GUEST#<name>` item exists. Record the name and the result here.
 
 ## Workflow follow-up
